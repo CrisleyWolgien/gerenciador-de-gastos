@@ -6,19 +6,22 @@ import os
 from dotenv import load_dotenv
 from sqlmodel import Session
 from db import engine
-from models.usersModels import Users
+from models.expenses import Users
+
 
 load_dotenv(override=True)
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+ALGORITHM = os.getenv("ALGORITHM", "")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 
 if SECRET_KEY is None:
     raise ValueError("SECRET_KEY não foi definida no .env")
+SECRET_KEY: str = SECRET_KEY
 
 if ALGORITHM is None:
     raise ValueError("ALGORITHM não foi definida no .env")
+ALGORITHM: str = ALGORITHM
 
 if ACCESS_TOKEN_EXPIRE_MINUTES is None:
     raise ValueError("ACCESS_TOKEN_EXPIRE_MINUTES não foi definida no .env")
@@ -31,6 +34,8 @@ def create_access_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
+    if "sub" not in to_encode:
+        raise ValueError("Token payload precisa conter 'sub'")
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 

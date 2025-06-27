@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import ExpensesRouters, UsersRoutes
+from routers import ExpensesRouters, UsersRoutes,DashBoardRouter,BudgetRouters
 
 
 
@@ -21,3 +21,5 @@ def ping():
 
 app.include_router(ExpensesRouters.router)
 app.include_router(UsersRoutes.router)
+app.include_router(DashBoardRouter.router)
+app.include_router(BudgetRouters.router)

@@ -73,7 +73,7 @@ def login(loginData: loginUser):
                 status_code=401, content={"message": "Email ou Senha incorreta"}
             )
         token = create_access_token({"sub": str(result.id)})
-        return {"acess_token": token, "token_type": "bearer"}
+        return {"access_token": token, "token_type": "bearer"}
     
 @router.get("/test-token")
 def test_token(current_user: str = Depends(get_current_user)):

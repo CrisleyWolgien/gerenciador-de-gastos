@@ -32,16 +32,41 @@ function LoginPage() {
     setShowPassword((prev) => !prev);
   };
 
-
   // logica login
 
-  const [inputemail, setInputEmail] = useState("")
-  const [inputpassword, setInputPassword] = useState("")
-  const [respostaApi, setRespostaApi] = useState("")
+  const [inputemail, setInputEmail] = useState("");
+  const [inputpassword, setInputPassword] = useState("");
+  const [respostaApi, setRespostaApi] = useState("");
 
-  const  loginUser = (e) => {
-    fetch("")
-  }
+  const loginUser = (e) => {
+    e.preventDefault();
+
+    fetch("https://gerenciador-de-gastos-42k3.onrender.com/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        email: inputemail,
+        password: inputpassword,
+      }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message || "erro desconhecido");
+        }
+        localStorage.setItem("token", data.access_token);
+        return data;
+      })
+
+      .then((data) => setRespostaApi(data.message))
+      .catch((error) => {
+        console.error("error", error);
+        setRespostaApi(error.message);
+      });
+  };
 
   return (
     <div className="h-screen w-screen flex justify-center items-center bg-dark-background p-4">
@@ -52,7 +77,10 @@ function LoginPage() {
           </h1>
 
           <div className="w-full lg:w-4/5 flex flex-col items-center justify-center">
-            <form className="w-full flex flex-col items-center justify-center gap-2">
+            <form
+              onSubmit={loginUser}
+              className="w-full flex flex-col items-center justify-center gap-2"
+            >
               <div className="w-full">
                 <p className="mb-2 mt-5 text-text-secondary font-body">
                   E-mail
@@ -60,6 +88,8 @@ function LoginPage() {
                 <input
                   type="email"
                   placeholder="Digite seu E-mail"
+                  value={inputemail}
+                  onChange={(e) => setInputEmail(e.target.value)}
                   className="w-full pl-2 p-2 rounded-[10px] text-text-primary bg-transparent border-2 border-text-secondary focus:border-neon-pink focus:outline-none focus:ring-1 focus:ring-neon-pink"
                 />
               </div>
@@ -69,6 +99,8 @@ function LoginPage() {
                   <input
                     type={showPassword ? "text" : "password"}
                     placeholder="Digite sua senha"
+                    value={inputpassword}
+                    onChange={(e) => setInputPassword(e.target.value)}
                     className="w-full pl-2 p-2 rounded-[10px] text-text-primary bg-transparent border-2 border-text-secondary focus:border-neon-pink focus:outline-none focus:ring-1 focus:ring-neon-pink"
                   />
                   <button

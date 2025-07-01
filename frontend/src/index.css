@@ -1,5 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap');
+/* Importa as diretivas base do Tailwind CSS */
 @import "tailwindcss";
 
-@theme{
-  --coloor-backgroundColor: #291C59
+/* Importa as fontes que escolhemos do Google Fonts */
+
+/* Define os tokens de design personalizados usando @theme */
+@theme {
+  /*
+   * Paleta de Cores
+   * O Tailwind irá gerar classes como:
+   * bg-neon-pink, text-neon-cyan, border-dark-surface, etc.
+  */
+  --color-neon-pink: #F279DE;
+  --color-neon-cyan: #00F6FF;
+  
+  --color-dark-background: #0D0D0D;
+  --color-dark-surface: #1A1A1A;
+  
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #8A8A8A;
+
+  /*
+   * Fontes
+   * O Tailwind irá gerar classes como: font-display, font-body
+  */
+  --font-display: "Orbitron", sans-serif;
+  --font-body: "Rajdhani", sans-serif;
+
+  /*
+   * Efeitos de Sombra (Glow)
+   * O Tailwind irá gerar classes como: shadow-glow-pink
+  */
+  --shadow-glow-pink: 0 0 15px 0 #F279DE;
+  --shadow-glow-cyan: 0 0 15px 0 #00F6FF;
 }

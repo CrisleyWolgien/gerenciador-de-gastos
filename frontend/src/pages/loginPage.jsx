@@ -1,6 +1,8 @@
 import { use, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function LoginPage() {
+  const navigate = useNavigate();
   const eyeOpen = (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -57,8 +59,11 @@ function LoginPage() {
         if (!res.ok) {
           throw new Error(data.message || "erro desconhecido");
         }
-        localStorage.setItem("token", data.access_token);
-        return data;
+        localStorage.setItem("token", data.access_token);   
+        if (res.ok) {
+          navigate("/app");
+          return data;
+        }
       })
 
       .then((data) => setRespostaApi(data.message))

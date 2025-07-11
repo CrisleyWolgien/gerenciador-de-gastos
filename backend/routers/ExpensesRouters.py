@@ -1,116 +1,144 @@
-from fastapi import Depends
+from fastapi import Depends, Query
 from fastapi.routing import APIRouter
 from fastapi.responses import JSONResponse
 from utils.jwt import get_current_user
-from schemas.ExpensesSchema import expense
+from schemas.ExpensesSchema import expense, updateExpense
 from models.expenses import Expenses, Users
 from db import engine
 from sqlmodel import Session, select
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy import or_
-
+from datetime import date
 
 router = APIRouter()
 
 
-@router.post("/expenses")
+@router.post("/expenses", response_model=dict)
 def create_expense(
     expenseData: expense, current_user: Users = Depends(get_current_user)
 ):
+    """
+    Cria uma nova despesa para o usuário autenticado.
+    """
+    # Garante que o ID do usuário não seja nulo
     assert current_user.id is not None
+
     new_expense = Expenses(
         name=expenseData.name,
         description=expenseData.description,
-        category=expenseData.category,
+        category=expenseData.category.value,  # Pega o valor do Enum
         value=expenseData.value,
         user_id=current_user.id,
+        # O campo date_created será preenchido automaticamente pelo banco de dados
     )
 
     with Session(engine) as session:
         session.add(new_expense)
         session.commit()
         session.refresh(new_expense)
-        return {"message": "Despesa Criada com sucesso"}
+        return {"message": "Despesa criada com sucesso"}
 
 
-@router.get("/expenses")
+@router.get("/expenses", response_model=List[Expenses])
 def list_expenses(
-    category: Optional[str] = None,
-    search: Optional[str] = None,
-    min_value: Optional[float] = None,
-    max_value: Optional[float] = None,
+    # Parâmetros de filtro, incluindo os de data
+    start_date: Optional[date] = Query(
+        None, description="Data de início do filtro (YYYY-MM-DD)"
+    ),
+    end_date: Optional[date] = Query(
+        None, description="Data de fim do filtro (YYYY-MM-DD)"
+    ),
+    category: Optional[str] = Query(None, description="Filtrar por categoria"),
+    search: Optional[str] = Query(None, description="Buscar por nome ou descrição"),
     current_user: Users = Depends(get_current_user),
 ):
+    """
+    Lista as despesas do usuário autenticado com filtros opcionais.
+    """
     with Session(engine) as session:
+        # Começa a query selecionando despesas do usuário logado
         statement = select(Expenses).where(Expenses.user_id == current_user.id)
 
-        if category:
+        # Aplica os filtros se eles forem fornecidos
+        if start_date:
+            statement = statement.where(Expenses.date_created >= start_date)
+
+        if end_date:
+            statement = statement.where(Expenses.date_created <= end_date)
+
+        if category and category != "Todas":
             statement = statement.where(Expenses.category == category)
 
         if search:
             statement = statement.where(
                 or_(
-                    Expenses.name.contains(search),  # type: ignore
-                    Expenses.description.contains(search),  # type: ignore
+                    Expenses.name.ilike(
+                        f"%{search}%"
+                    ),  # ilike para busca case-insensitive
+                    Expenses.description.ilike(f"%{search}%"),
                 )
             )
 
-        if min_value is not None:
-            statement = statement.where(Expenses.value >= min_value)
-
-        if max_value:
-            statement = statement.where(Expenses.value <= max_value)
+        # Ordena os resultados pela data mais recente
+        statement = statement.order_by(Expenses.date_created.desc())
 
         results = session.exec(statement).all()
-
         return results
 
 
-@router.post("/expense/{id}/delete")
+@router.post("/expense/{id}/delete", response_model=dict)
 def delete_expense(id: int, current_user: Users = Depends(get_current_user)):
+    """
+    Deleta uma despesa específica do usuário.
+    """
     with Session(engine) as session:
-        statement = select(Expenses).where(Expenses.id == id)
-        result = session.exec(statement).first()
+        # Busca a despesa pelo ID
+        expense_to_delete = session.get(Expenses, id)
 
-        if not result:
+        if not expense_to_delete:
             return JSONResponse(
                 status_code=404, content={"message": "Despesa não encontrada"}
             )
-        if result.user_id != current_user.id:
+
+        # Verifica se a despesa pertence ao usuário logado
+        if expense_to_delete.user_id != current_user.id:
             return JSONResponse(status_code=403, content={"message": "Acesso negado"})
 
-        session.delete(result)
+        session.delete(expense_to_delete)
         session.commit()
 
-        return {"message": f"despesa excluida com sucesso {result.name}"}
+        return {"message": f"Despesa '{expense_to_delete.name}' excluída com sucesso"}
 
 
-@router.put("/expense/{id}")
+@router.put("/expense/{id}", response_model=dict)
 def modify_expense(
-    id: int, expenseData: expense, current_user: Users = Depends(get_current_user)
+    id: int, expenseData: updateExpense, current_user: Users = Depends(get_current_user)
 ):
+    """
+    Modifica uma despesa existente.
+    """
     with Session(engine) as session:
-        statement = select(Expenses).where(Expenses.id == id)
-        result = session.exec(statement).first()
+        expense_to_update = session.get(Expenses, id)
 
-        if not result:
+        if not expense_to_update:
             return JSONResponse(
                 status_code=404, content={"message": "Despesa não encontrada"}
             )
-        if result.user_id != current_user.id:
+
+        if expense_to_update.user_id != current_user.id:
             return JSONResponse(status_code=403, content={"message": "Acesso negado"})
 
-        if expenseData.name is not None:
-            result.name = expenseData.name
-        if expenseData.description is not None:
-            result.description = expenseData.description
-        if expenseData.value is not None:
-            result.value = expenseData.value
-        if expenseData.category is not None:
-            result.category = expenseData.category
+        # Pega os dados enviados e atualiza o modelo
+        update_data = expenseData.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            # Se a categoria for um Enum, pega o seu valor
+            if key == "category" and hasattr(value, "value"):
+                setattr(expense_to_update, key, value.value)
+            else:
+                setattr(expense_to_update, key, value)
 
-        session.add(result)
+        session.add(expense_to_update)
         session.commit()
-        session.refresh(result)
+        session.refresh(expense_to_update)
 
-        return {"message": f"Despesa {result.name} alterada com sucesso"}
+        return {"message": f"Despesa '{expense_to_update.name}' alterada com sucesso"}

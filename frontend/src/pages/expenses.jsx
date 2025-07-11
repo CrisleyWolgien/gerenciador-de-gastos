@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { FiSearch, FiEdit, FiTrash2 } from "react-icons/fi";
 import { DateRangePickerFuturista } from "../components/DatePickerFuturista";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, isValid, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 function Expenses() {
@@ -22,57 +22,72 @@ function Expenses() {
   });
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
-  const fetchExpenses = async (range, search, category) => {
-    setIsLoading(true);
-    setError(null);
-    
-    const params = new URLSearchParams();
-    if (range.from) params.append("start_date", range.from.toISOString());
-    if (range.to) params.append("end_date", range.to.toISOString());
-    if (search) params.append("search", search);
-    if (category && category !== "Todas") params.append("category", category);
+  useEffect(() => {
+    const fetchExpenses = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      const params = new URLSearchParams();
+      if (dateRange.from) params.append("start_date", dateRange.from.toISOString());
+      if (dateRange.to) params.append("end_date", dateRange.to.toISOString());
+      if (searchTerm) params.append("search", searchTerm);
+      if (selectedCategory && selectedCategory !== "Todas") params.append("category", selectedCategory);
 
-    const backendUrl = "https://gerenciador-de-gastos-42k3.onrender.com";
-    const token = localStorage.getItem("token");
+      const backendUrl = "https://gerenciador-de-gastos-42k3.onrender.com";
+      const token = localStorage.getItem("token");
 
-    try {
-      const response = await fetch(`${backendUrl}/expenses?${params.toString()}`, {
-        headers: {
-            'Authorization': `Bearer ${token}`
+      try {
+        const response = await fetch(`${backendUrl}/expenses?${params.toString()}`, {
+          headers: {
+              'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "Falha ao buscar dados.");
         }
-      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Falha ao buscar dados.");
+        const data = await response.json();
+        setExpenses(data);
+        
+        setQuantiaDeDespesa(data.length);
+        const total = data.reduce((sum, expense) => sum + expense.value, 0);
+        setSomaTotalDeDespesas(total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+      } catch (err) {
+        setError(err.message);
+        setExpenses([]);
+      } finally {
+        setIsLoading(false);
       }
 
-      const data = await response.json();
-      setExpenses(data);
-      
-      setQuantiaDeDespesa(data.length);
-      const total = data.reduce((sum, expense) => sum + expense.value, 0);
-      setSomaTotalDeDespesas(total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      if (dateRange && dateRange.from && dateRange.to) {
+        const fromFormatted = format(dateRange.from, "dd/MM/yy");
+        const toFormatted = format(dateRange.to, "dd/MM/yy");
+        setPeriodo(`${fromFormatted} - ${toFormatted}`);
+      } else {
+        setPeriodo("Todos os Períodos");
+      }
+    };
 
-    } catch (err) {
-      setError(err.message);
-      setExpenses([]);
-    } finally {
-      setIsLoading(false);
-    }
+    fetchExpenses();
+  }, [dateRange, searchTerm, selectedCategory]);
 
-    if (range && range.from && range.to) {
-      const fromFormatted = format(range.from, "dd/MM/yy");
-      const toFormatted = format(range.to, "dd/MM/yy");
-      setPeriodo(`${fromFormatted} - ${toFormatted}`);
-    } else {
-      setPeriodo("Todos os Períodos");
+  const formatarDataSegura = (dateString) => {
+    if (!dateString) return '---';
+    try {
+      // parseISO é mais robusto para formatos como "AAAA-MM-DD"
+      const data = parseISO(dateString); 
+      if (!isValid(data)) { // isValid é a melhor forma de verificar
+        throw new Error("Data inválida");
+      }
+      return format(data, 'dd/MM/yyyy');
+    } catch (error) {
+      console.error("Erro ao formatar data:", dateString, error);
+      return 'Inválida';
     }
   };
-
-  useEffect(() => {
-    fetchExpenses(dateRange, searchTerm, selectedCategory);
-  }, [dateRange, searchTerm, selectedCategory]);
 
   return (
     <div className="h-full w-full p-4 md:p-8 static-grid-bg">
@@ -156,28 +171,17 @@ function Expenses() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr>
-                  <td colSpan="5" className="text-center p-10 text-text-secondary">
-                    // Carregando dados da rede neural...
-                  </td>
-                </tr>
+                <tr><td colSpan="5" className="text-center p-10 text-text-secondary">// Carregando dados...</td></tr>
               ) : error ? (
-                <tr>
-                  <td colSpan="5" className="text-center p-10 text-error">
-                    // ERRO DE CONEXÃO: {error}
-                  </td>
-                </tr>
+                <tr><td colSpan="5" className="text-center p-10 text-error">// ERRO: {error}</td></tr>
               ) : expenses.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="text-center p-10 text-text-secondary">
-                    // Nenhuma transação encontrada para os filtros selecionados.
-                  </td>
-                </tr>
+                <tr><td colSpan="5" className="text-center p-10 text-text-secondary">// Nenhuma transação encontrada.</td></tr>
               ) : (
                 expenses.map((expense) => (
                   <tr key={expense.id} className="border-b border-dark-grid last:border-none hover:bg-dark-surface/50">
                     <td className="p-4 text-text-primary whitespace-nowrap">
-                      {format(new Date(expense.date), 'dd/MM/yyyy')}
+                      {/* A CORREÇÃO ESTÁ AQUI: Usando expense.date_created */}
+                      {formatarDataSegura(expense.date_created)}
                     </td>
                     <td className="p-4 text-text-primary">{expense.name}</td>
                     <td className="p-4 text-text-secondary">{expense.category}</td>

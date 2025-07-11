@@ -1,78 +1,77 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap');
-/* Importa as diretivas base do Tailwind CSS */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Share+Tech+Mono&display=swap');
 @import "tailwindcss";
 
-/* Importa as fontes que escolhemos do Google Fonts */
-
-/* Define os tokens de design personalizados usando @theme */
 @theme {
+  /* ... Cores e Fontes (sem alteração da versão anterior) ... */
+  --color-electric-green: #39FF14;
+  --color-glitch-magenta: #FF00FF;
+  --color-data-blue: #00BFFF;
+  --color-dark-void: #010101;
+  --color-dark-panel: #101010;
+  --color-dark-grid: #222222;
+  --color-text-primary: #F0F0F0;
+  --color-text-secondary: #A0A0A0;
+  --font-display: "Chakra Petch", sans-serif;
+  --font-mono: "Share Tech Mono", monospace;
+  --shadow-electric-glow: 0 0 15px 0 var(--color-electric-green);
+}
+
+@layer utilities {
+  /* Efeito de brilho para a borda da sidebar */
+  .sidebar-glow::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -1px;
+    width: 2px;
+    height: 100%;
+    background: var(--color-electric-green);
+    box-shadow: 0 0 10px 0 var(--color-electric-green);
+    opacity: 0.8;
+  }
 
   /* ========================================================================
-     1. Paleta de Cores Principal
+     NOVAS ANIMAÇÕES
      ======================================================================== */
   
-  --color-neon-pink: #F279DE;          /* Cor de destaque, para ações secundárias ou chamativas. */
-  --color-neon-cyan: #00F6FF;          /* Cor primária para ações, links e elementos interativos. */
+  /* Animação GLITCH para texto */
+  @keyframes glitch {
+    0% { text-shadow: .05em 0 0 var(--color-glitch-magenta), -.025em -.05em 0 var(--color-data-blue), .025em .05em 0 var(--color-electric-green); }
+    2% { text-shadow: .05em 0 0 var(--color-glitch-magenta), -.025em -.05em 0 var(--color-data-blue), .025em .05em 0 var(--color-electric-green); }
+    49% { text-shadow: .05em 0 0 var(--color-glitch-magenta), -.025em -.05em 0 var(--color-data-blue), .025em .05em 0 var(--color-electric-green); }
+    50% { text-shadow: -.05em 0 0 var(--color-glitch-magenta), .025em .05em 0 var(--color-data-blue), -.05em -.025em 0 var(--color-electric-green); }
+    99% { text-shadow: -.05em 0 0 var(--color-glitch-magenta), .025em .05em 0 var(--color-data-blue), -.05em -.025em 0 var(--color-electric-green); }
+    100% { text-shadow: none; }
+  }
+  .animate-glitch {
+    animation: glitch 5s infinite;
+  }
+  .animate-glitch:hover {
+    animation: none; /* Pausa a animação no hover para legibilidade */
+  }
 
+  /* Fundo de GRID animado */
+  @keyframes animated-grid {
+    0% { background-position: 0 0; }
+    100% { background-position: 100% 100%; }
+  }
+  .animated-grid-bg {
+    background-color: var(--color-dark-panel);
+    background-image: 
+      linear-gradient(var(--color-dark-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-dark-grid) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: animated-grid 20s linear infinite;
+  }
 
-  /* ========================================================================
-     2. Layout e Contêineres
-     ======================================================================== */
+   .plexus-bg {
+    background-color: var(--color-dark-void);
+    background-image: 
+      radial-gradient(circle at 15% 50%, var(--color-dark-grid) 1px, transparent 1px),
+      radial-gradient(circle at 85% 50%, var(--color-dark-grid) 1px, transparent 1px),
+      radial-gradient(at 50% 15%, var(--color-dark-grid) 1px, transparent 1px),
+      radial-gradient(at 50% 85%, var(--color-dark-grid) 1px, transparent 1px);
+    background-size: 100px 100px;
+  }
 
-  --color-dark-background: #0D0D0D;    /* Fundo principal da aplicação, a cor mais escura. */
-  --color-dark-container: #141414;     /* Para Navbar, Sidebar e Footer. Um pouco mais claro que o fundo para criar profundidade. */
-  --color-dark-surface: #x;       /* Para cards, modais e outras "superfícies" que ficam sobre os contêineres. */
-
-
-  /* ========================================================================
-     3. Cores para Botões
-     ======================================================================== */
-  
-  /* Botão Primário (Ex: "Salvar", "Confirmar") */
-  --color-button-primary-bg: theme(colors.neon-cyan);        /* Fundo do botão principal. */
-  --color-button-primary-text: theme(colors.dark-background); /* Texto do botão principal (precisa de alto contraste). */
-  --color-button-primary-hover-bg: #80FAFF;                   /* Fundo do botão principal ao passar o mouse (versão mais clara). */
-
-  /* Botão Secundário (Ex: "Cancelar") */
-  --color-button-secondary-border: theme(colors.text-secondary); /* Borda do botão secundário. */
-  --color-button-secondary-text: theme(colors.text-secondary);   /* Texto do botão secundário. */
-  --color-button-secondary-hover-bg: theme(colors.dark-surface); /* Fundo do botão secundário ao passar o mouse. */
-
-
-  /* ========================================================================
-     4. Cores para Textos e Feedback
-     ======================================================================== */
-
-  --color-text-primary: #FFFFFF;        /* Cor principal para a maioria dos textos. */
-  --color-text-secondary: #8A8A8A;      /* Para textos com menos destaque, placeholders e descrições. */
-  --color-text-link: theme(colors.neon-cyan);          /* Cor para links de texto. */
-  --color-text-link-hover: theme(colors.neon-pink);    /* Cor para links de texto ao passar o mouse. */
-  
-  /* Cores de status para mensagens de feedback */
-  --color-feedback-success: #2EBF91;   /* Para mensagens de sucesso (Ex: "Despesa salva!"). */
-  --color-feedback-warning: #F2B705;   /* Para alertas e avisos. */
-  --color-feedback-error: #F24444;     /* Para mensagens de erro (Ex: "Senha inválida."). */
-
-
-  /* ========================================================================
-     5. Outros Elementos de UI
-     ======================================================================== */
-
-  --color-border-muted: #2C2C2C;       /* Borda sutil para divisores, inputs e separadores de layout. */
-  --color-border-interactive: theme(colors.neon-cyan); /* Borda para elementos focados ou ativos (Ex: input selecionado). */
-
-  /* ========================================================================
-     6. Fontes
-     ======================================================================== */
-  
-  --font-display: "Orbitron", sans-serif; /* Para títulos grandes (H1, H2) e logos. */
-  --font-body: "Rajdhani", sans-serif;   /* Para todo o resto: parágrafos, botões, labels. */
-
-
-  /* ========================================================================
-     7. Efeitos de Sombra (Glow)
-     ======================================================================== */
-  
-  --shadow-glow-pink: 0px 2px 20px 0px #F279DE;
-  --shadow-glow-cyan: 0 2px 10px 0 #00F6FF;
 }

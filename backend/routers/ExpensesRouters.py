@@ -26,7 +26,7 @@ def create_expense(
     new_expense = Expenses(
         name=expenseData.name,
         description=expenseData.description,
-        category=expenseData.category.value,  # Pega o valor do Enum
+        category=expenseData.category,  # Pega o valor do Enum
         value=expenseData.value,
         user_id=current_user.id,
         # O campo date_created será preenchido automaticamente pelo banco de dados

@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import { FiSearch, FiEdit, FiTrash2 } from "react-icons/fi";
-import { DateRangePickerFuturista } from "../components/DatePickerFuturista";
-import { format, startOfMonth, endOfMonth, isValid, parseISO } from "date-fns";
+import { DateRangePickerFuturista } from "../components/DateRangePickerFuturista";
+// Importamos as funções necessárias de date-fns
+import { format, startOfMonth, endOfMonth, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 function Expenses() {
+  // Estados para os dados da API
   const [expenses, setExpenses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Estados para o painel de resumo e filtros
   const [quantiaDeDespesa, setQuantiaDeDespesa] = useState("0");
   const [somaTotalDeDespesas, setSomaTotalDeDespesas] = useState("0,00");
   const [periodo, setPeriodo] = useState(
@@ -22,26 +25,35 @@ function Expenses() {
   });
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
+  // useEffect para buscar os dados sempre que um filtro mudar
   useEffect(() => {
     const fetchExpenses = async () => {
       setIsLoading(true);
       setError(null);
-      
+
       const params = new URLSearchParams();
-      if (dateRange.from) params.append("start_date", dateRange.from.toISOString());
-      if (dateRange.to) params.append("end_date", dateRange.to.toISOString());
+
+      if (dateRange.from)
+        params.append("start_date", format(dateRange.from, "yyyy-MM-dd"));
+      if (dateRange.to)
+        params.append("end_date", format(dateRange.to, "yyyy-MM-dd"));
+
       if (searchTerm) params.append("search", searchTerm);
-      if (selectedCategory && selectedCategory !== "Todas") params.append("category", selectedCategory);
+      if (selectedCategory && selectedCategory !== "Todas")
+        params.append("category", selectedCategory);
 
       const backendUrl = "https://gerenciador-de-gastos-42k3.onrender.com";
       const token = localStorage.getItem("token");
 
       try {
-        const response = await fetch(`${backendUrl}/expenses?${params.toString()}`, {
-          headers: {
-              'Authorization': `Bearer ${token}`
+        const response = await fetch(
+          `${backendUrl}/expenses?${params.toString()}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
-        });
+        );
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -50,48 +62,52 @@ function Expenses() {
 
         const data = await response.json();
         setExpenses(data);
-        
+
+        // Atualiza os dados do painel de resumo
         setQuantiaDeDespesa(data.length);
         const total = data.reduce((sum, expense) => sum + expense.value, 0);
-        setSomaTotalDeDespesas(total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-
+        setSomaTotalDeDespesas(
+          total.toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        );
       } catch (err) {
         setError(err.message);
         setExpenses([]);
       } finally {
         setIsLoading(false);
       }
-
-      if (dateRange && dateRange.from && dateRange.to) {
-        const fromFormatted = format(dateRange.from, "dd/MM/yy");
-        const toFormatted = format(dateRange.to, "dd/MM/yy");
-        setPeriodo(`${fromFormatted} - ${toFormatted}`);
-      } else {
-        setPeriodo("Todos os Períodos");
-      }
     };
 
     fetchExpenses();
   }, [dateRange, searchTerm, selectedCategory]);
 
+  // Função segura para formatar a data na tabela
   const formatarDataSegura = (dateString) => {
-    if (!dateString) return '---';
+    if (!dateString) return "---";
     try {
-      // parseISO é mais robusto para formatos como "AAAA-MM-DD"
-      const data = parseISO(dateString); 
-      if (!isValid(data)) { // isValid é a melhor forma de verificar
-        throw new Error("Data inválida");
-      }
-      return format(data, 'dd/MM/yyyy');
+      const data = parseISO(dateString);
+      if (!isValid(data)) throw new Error("Data inválida");
+      return format(data, "dd/MM/yyyy");
     } catch (error) {
-      console.error("Erro ao formatar data:", dateString, error);
-      return 'Inválida';
+      return "Inválida";
     }
   };
 
+  // Atualiza o texto do período exibido no painel
+  useEffect(() => {
+    if (dateRange && dateRange.from && dateRange.to) {
+      const fromFormatted = format(dateRange.from, "dd/MM/yy");
+      const toFormatted = format(dateRange.to, "dd/MM/yy");
+      setPeriodo(`${fromFormatted} - ${toFormatted}`);
+    } else {
+      setPeriodo("Todos os Períodos");
+    }
+  }, [dateRange]);
+
   return (
     <div className="h-full w-full p-4 md:p-8 static-grid-bg">
-      
       <div className="text-center py-4">
         <h1 className="text-3xl md:text-4xl font-display text-text-primary tracking-widest animate-glitch">
           TRANSACTIONS
@@ -101,27 +117,41 @@ function Expenses() {
       <div className="mt-2">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-dark-panel/90 backdrop-blur-sm border border-dark-grid">
           <div className="text-center sm:text-left">
-            <p className="font-mono text-sm text-text-secondary uppercase">Período Selecionado</p>
-            <p className="font-display text-xl text-text-primary capitalize">{periodo}</p>
+            <p className="font-mono text-sm text-text-secondary uppercase">
+              Período Selecionado
+            </p>
+            <p className="font-display text-xl text-text-primary capitalize">
+              {periodo}
+            </p>
           </div>
           <div className="text-center sm:text-right">
             <p className="font-mono text-sm text-text-secondary">TRANSAÇÕES</p>
-            <p className="font-display text-xl text-text-primary">{quantiaDeDespesa}</p>
+            <p className="font-display text-xl text-text-primary">
+              {quantiaDeDespesa}
+            </p>
           </div>
           <div className="text-center sm:text-right">
             <p className="font-mono text-sm text-text-secondary">TOTAL GASTO</p>
-            <p className="font-display text-2xl text-electric-green">R$ {somaTotalDeDespesas}</p>
+            <p className="font-display text-2xl text-electric-green">
+              R$ {somaTotalDeDespesas}
+            </p>
           </div>
         </div>
       </div>
 
-      <div className={`relative mt-6 p-4 bg-dark-panel/90 backdrop-blur-sm border border-dark-grid ${isDatePickerOpen ? 'z-20' : 'z-10'}`}>
+      <div
+        className={`relative mt-6 p-4 bg-dark-panel/90 backdrop-blur-sm border border-dark-grid ${
+          isDatePickerOpen ? "z-20" : "z-10"
+        }`}
+      >
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div className="md:col-span-2">
-            <label className="font-mono text-sm text-text-secondary">BUSCAR</label>
+            <label className="font-mono text-sm text-text-secondary">
+              BUSCAR
+            </label>
             <div className="relative mt-2">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
-              <input 
+              <input
                 type="text"
                 placeholder="Buscar por nome ou descrição..."
                 value={searchTerm}
@@ -131,8 +161,10 @@ function Expenses() {
             </div>
           </div>
           <div>
-            <label className="font-mono text-sm text-text-secondary">CATEGORIA</label>
-            <select 
+            <label className="font-mono text-sm text-text-secondary">
+              CATEGORIA
+            </label>
+            <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="w-full mt-2 p-2 font-mono text-text-primary bg-dark-surface border-2 border-dark-grid rounded-none focus:border-electric-green focus:outline-none"
@@ -146,52 +178,97 @@ function Expenses() {
             </select>
           </div>
           <div>
-             <label className="font-mono text-sm text-text-secondary">PERÍODO</label>
-             <DateRangePickerFuturista 
-                onRangeChange={setDateRange} 
-                initialRange={dateRange}
-                onOpen={() => setIsDatePickerOpen(true)}
-                onClose={() => setIsDatePickerOpen(false)}
-             />
+            <label className="font-mono text-sm text-text-secondary">
+              PERÍODO
+            </label>
+            <DateRangePickerFuturista
+              onRangeChange={setDateRange}
+              initialRange={dateRange}
+              onOpen={() => setIsDatePickerOpen(true)}
+              onClose={() => setIsDatePickerOpen(false)}
+            />
           </div>
         </div>
       </div>
 
-      <div className={`relative mt-6 bg-dark-panel/90 backdrop-blur-sm border border-dark-grid ${isDatePickerOpen ? 'z-0' : 'z-10'}`}>
+      <div
+        className={`relative mt-6 bg-dark-panel/90 backdrop-blur-sm border border-dark-grid ${
+          isDatePickerOpen ? "z-0" : "z-10"
+        }`}
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-left font-mono">
             <thead className="border-b border-dark-grid">
               <tr>
-                <th className="p-4 text-sm text-text-secondary uppercase">Data</th>
-                <th className="p-4 text-sm text-text-secondary uppercase">Descrição</th>
-                <th className="p-4 text-sm text-text-secondary uppercase">Categoria</th>
-                <th className="p-4 text-sm text-text-secondary uppercase text-right">Valor</th>
-                <th className="p-4 text-sm text-text-secondary uppercase text-center">Ações</th>
+                <th className="p-4 text-sm text-text-secondary uppercase">
+                  Data
+                </th>
+                <th className="p-4 text-sm text-text-secondary uppercase">
+                  Descrição
+                </th>
+                <th className="p-4 text-sm text-text-secondary uppercase">
+                  Categoria
+                </th>
+                <th className="p-4 text-sm text-text-secondary uppercase text-right">
+                  Valor
+                </th>
+                <th className="p-4 text-sm text-text-secondary uppercase text-center">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan="5" className="text-center p-10 text-text-secondary">// Carregando dados...</td></tr>
+                <tr>
+                  <td
+                    colSpan="5"
+                    className="text-center p-10 text-text-secondary"
+                  >
+                    // Carregando dados...
+                  </td>
+                </tr>
               ) : error ? (
-                <tr><td colSpan="5" className="text-center p-10 text-error">// ERRO: {error}</td></tr>
+                <tr>
+                  <td colSpan="5" className="text-center p-10 text-error">
+                    // ERRO: {error}
+                  </td>
+                </tr>
               ) : expenses.length === 0 ? (
-                <tr><td colSpan="5" className="text-center p-10 text-text-secondary">// Nenhuma transação encontrada.</td></tr>
+                <tr>
+                  <td
+                    colSpan="5"
+                    className="text-center p-10 text-text-secondary"
+                  >
+                    // Nenhuma transação encontrada.
+                  </td>
+                </tr>
               ) : (
                 expenses.map((expense) => (
-                  <tr key={expense.id} className="border-b border-dark-grid last:border-none hover:bg-dark-surface/50">
+                  <tr
+                    key={expense.id}
+                    className="border-b border-dark-grid last:border-none hover:bg-dark-surface/50"
+                  >
                     <td className="p-4 text-text-primary whitespace-nowrap">
-                      {/* A CORREÇÃO ESTÁ AQUI: Usando expense.date_created */}
                       {formatarDataSegura(expense.date_created)}
                     </td>
                     <td className="p-4 text-text-primary">{expense.name}</td>
-                    <td className="p-4 text-text-secondary">{expense.category}</td>
+                    <td className="p-4 text-text-secondary">
+                      {expense.category}
+                    </td>
                     <td className="p-4 text-electric-green text-right font-bold">
-                      {expense.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      {expense.value.toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })}
                     </td>
                     <td className="p-4 text-text-secondary text-center">
                       <div className="flex justify-center gap-4">
-                        <button className="hover:text-data-blue"><FiEdit size={18} /></button>
-                        <button className="hover:text-error"><FiTrash2 size={18} /></button>
+                        <button className="hover:text-data-blue">
+                          <FiEdit size={18} />
+                        </button>
+                        <button className="hover:text-error">
+                          <FiTrash2 size={18} />
+                        </button>
                       </div>
                     </td>
                   </tr>

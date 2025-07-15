@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import LoginPage from "./pages/LoginPage";
+import LoginPage from "./pages/loginPage";
 import Layout from "./components/layout";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./routes/PrivateRoute";
@@ -7,6 +7,7 @@ import PrivateRoute from "./routes/PrivateRoute";
 // Importe as páginas que serão renderizadas dentro do Layout
 import Dashboard from "./pages/dashboard";
 import Expenses from "./pages/expenses";
+import New_entry from "./components/new_entry";
 // import Budgets from "./pages/Budgets";
 // import Settings from "./pages/Settings";
 
@@ -34,6 +35,7 @@ function App() {
 
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="expenses" element={<Expenses />} />
+          <Route path="new_entry" element={<New_entry />} />
           {/* <Route path="budgets" element={<Budgets />} /> */}
           {/* <Route path="settings" element={<Settings />} /> */}
 

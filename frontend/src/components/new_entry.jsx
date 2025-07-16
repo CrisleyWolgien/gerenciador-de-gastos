@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { FiPlusCircle, FiLoader } from "react-icons/fi";
+// 1. Importe o nosso componente de Select customizado
+import { CustomSelect } from "../components/CustomSelect";
 
 function New_entry() {
   // Estados para controlar os campos do formulário
@@ -7,15 +9,12 @@ function New_entry() {
   const [inputdiscription, setInputDiscription] = useState("");
   const [inputvalue, setInputValue] = useState("");
   
-  // 1. Estados para as categorias dinâmicas
   const [availableCategories, setAvailableCategories] = useState([]);
-  const [InputCategory, setInputCategory] = useState(""); // Começa vazio
+  const [InputCategory, setInputCategory] = useState("");
 
-  // Estados para controlar o feedback da API
   const [isLoading, setIsLoading] = useState(false);
   const [apiResponse, setApiResponse] = useState({ message: "", type: "" });
 
-  // 2. useEffect para buscar as categorias quando a página carrega
   useEffect(() => {
     const fetchCategories = async () => {
       const backendUrl = "https://gerenciador-de-gastos-42k3.onrender.com";
@@ -31,7 +30,6 @@ function New_entry() {
         const categories = data.categories || [];
         setAvailableCategories(categories);
         
-        // Define a primeira categoria da lista como padrão
         if (categories.length > 0) {
           setInputCategory(categories[0]);
         }
@@ -41,18 +39,22 @@ function New_entry() {
       }
     };
     fetchCategories();
-  }, []); // O array vazio [] garante que isso rode apenas uma vez
+  }, []);
 
   const create_entry = async (e) => {
     e.preventDefault();
+    if (!InputCategory) {
+      setApiResponse({ message: "Por favor, selecione uma categoria.", type: "error" });
+      return;
+    }
     setIsLoading(true);
     setApiResponse({ message: "", type: "" });
 
     const expenseData = {
       name: inputname,
-      description: inputdiscription, // Corrigido de 'discription' para 'description'
+      description: inputdiscription,
       category: InputCategory,
-      value: parseFloat(inputvalue), // Converte o valor para número
+      value: parseFloat(inputvalue),
     };
 
     const backendUrl = "https://gerenciador-de-gastos-42k3.onrender.com";
@@ -74,7 +76,6 @@ function New_entry() {
       }
       
       setApiResponse({ message: data.message || "Entrada registrada!", type: "success" });
-      // Limpa o formulário
       setInputName("");
       setInputDiscription("");
       setInputValue("");
@@ -137,22 +138,13 @@ function New_entry() {
             </div>
             <div>
               <label className="font-mono text-sm text-text-secondary uppercase">// Categoria</label>
-              {/* 3. O SELECT AGORA É DINÂMICO */}
-              <select
-                required
+              {/* 2. Substituímos o <select> pelo nosso novo componente */}
+              <CustomSelect
+                options={availableCategories}
                 value={InputCategory}
-                onChange={(e) => setInputCategory(e.target.value)}
-                className="w-full mt-2 p-3 font-mono text-text-primary bg-dark-surface border-2 border-dark-grid rounded-none focus:border-electric-green focus:outline-none"
-              >
-                <option value="" disabled>Selecione...</option>
-                {availableCategories.length > 0 ? (
-                  availableCategories.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))
-                ) : (
-                  <option disabled>Carregando categorias...</option>
-                )}
-              </select>
+                onChange={setInputCategory}
+                placeholder="Selecione uma categoria..."
+              />
             </div>
           </div>
 

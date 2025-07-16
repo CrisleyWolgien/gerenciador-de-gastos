@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { FiX, FiLoader, FiSave } from "react-icons/fi";
+// 1. Importe o nosso componente de select customizado
+import { CustomSelect } from "./CustomSelect";
 
 // O modal recebe a despesa a ser editada (expenseToEdit) e as funções de controle
 function EditExpenseModal({ expenseToEdit, onClose, onSuccess }) {
@@ -125,16 +127,13 @@ function EditExpenseModal({ expenseToEdit, onClose, onSuccess }) {
             </div>
             <div>
               <label className="font-mono text-sm text-text-secondary uppercase">Categoria</label>
-              <select
+              {/* 2. Substituímos o <select> pelo nosso novo componente */}
+              <CustomSelect
+                options={availableCategories}
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full mt-2 p-2 font-mono text-text-primary bg-dark-surface border-2 border-dark-grid focus:border-data-blue focus:outline-none"
-                required
-              >
-                {availableCategories.map((catName) => (
-                  <option key={catName} value={catName}>{catName}</option>
-                ))}
-              </select>
+                onChange={setCategory}
+                placeholder="Selecione..."
+              />
             </div>
           </div>
           

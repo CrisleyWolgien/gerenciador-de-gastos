@@ -12,7 +12,7 @@ app = FastAPI()
 # Adicione a URL do seu frontend em produção aqui no futuro.
 origins = [
     "http://localhost:5173",
-     "https://gerenciador-de-gastos-ten.vercel.app" # Para desenvolvimento local
+     "https://gerenciador-de-gastos-ten.vercel.app/" # Para desenvolvimento local
     # Exemplo para produção: "https://seu-site.onrender.com" 
 ]
 

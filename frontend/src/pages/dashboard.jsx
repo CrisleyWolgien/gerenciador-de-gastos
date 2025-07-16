@@ -1,74 +1,45 @@
 import { useState, useEffect } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
-import { FiTrendingUp, FiTarget, FiStar } from "react-icons/fi";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { FiTrendingUp, FiTarget, FiStar, FiLoader } from "react-icons/fi";
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 
 // ========================================================================
 // LÓGICA DE CORES PARA O DEGRADÊ
 // ========================================================================
-// Função auxiliar para interpolar entre duas cores RGB
 const interpolateColor = (color1, color2, factor) => {
-  let result = color1.slice();
-  for (let i = 0; i < 3; i++) {
-    result[i] = Math.round(result[i] + factor * (color2[i] - result[i]));
-  }
-  return `rgb(${result.join(", ")})`;
+    let result = color1.slice();
+    for (let i = 0; i < 3; i++) {
+        result[i] = Math.round(result[i] + factor * (color2[i] - result[i]));
+    }
+    return `rgb(${result.join(', ')})`;
 };
 
-// Função principal que retorna a cor do degradê com base na porcentagem
 const getProgressBarColor = (percentage) => {
-  const green = [57, 255, 20]; // #39FF14
-  const yellow = [255, 215, 0]; // #FFD700
-  const red = [255, 51, 102]; // #FF3366
+    const green = [57, 255, 20];    // #39FF14
+    const yellow = [255, 215, 0];   // #FFD700
+    const red = [255, 51, 102];     // #FF3366
 
-  if (percentage < 50) {
-    // De 0% a 50%, vai de verde para amarelo
-    return interpolateColor(green, yellow, percentage / 50);
-  } else {
-    // De 50% a 100%, vai de amarelo para vermelho
-    return interpolateColor(yellow, red, (percentage - 50) / 50);
-  }
+    if (percentage < 50) {
+        return interpolateColor(green, yellow, percentage / 50);
+    } else {
+        return interpolateColor(yellow, red, (percentage - 50) / 50);
+    }
 };
 
-// Componente para os cards de categoria individuais
 const BudgetCategoryCard = ({ category, spent, budget }) => {
   const percentage = budget > 0 ? (spent / budget) * 100 : 0;
-
   const finalColor = getProgressBarColor(percentage);
-  let pulseAnimation = "";
-
-  if (percentage >= 100) {
-    pulseAnimation = "animate-pulse";
-  }
+  const pulseAnimation = percentage >= 100 ? "animate-pulse" : "";
 
   return (
     <div className="bg-dark-panel border border-dark-grid p-4 flex flex-col justify-between">
       <div>
-        <p className="font-mono text-sm text-text-secondary uppercase">
-          {category}
-        </p>
+        <p className="font-mono text-sm text-text-secondary uppercase">{category}</p>
         <p className="font-display text-2xl text-text-primary mt-1">
-          {spent.toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          })}
+          {spent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
         </p>
         <p className="font-mono text-xs text-text-secondary">
-          de{" "}
-          {budget.toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          })}
+          de {budget.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
         </p>
       </div>
       <div className="mt-4">
@@ -81,7 +52,6 @@ const BudgetCategoryCard = ({ category, spent, budget }) => {
             }}
           ></div>
         </div>
-        {/* CORREÇÃO: O texto da porcentagem agora sempre usa a cor secundária */}
         <p className="text-right font-mono text-xs mt-1 text-text-secondary">
           {Math.round(percentage)}%
         </p>
@@ -90,17 +60,13 @@ const BudgetCategoryCard = ({ category, spent, budget }) => {
   );
 };
 
-// Componente de Tooltip customizado para o Gráfico de Pizza
 const CustomPieTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-dark-panel border border-dark-grid p-3 font-mono text-sm">
         <p className="text-text-secondary">{`${payload[0].name}`}</p>
         <p className="font-bold" style={{ color: payload[0].payload.fill }}>
-          {`${payload[0].value.toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          })} (${Math.round(payload[0].percent * 100)}%)`}
+          {`${payload[0].value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (${Math.round(payload[0].percent * 100)}%)`}
         </p>
       </div>
     );
@@ -109,51 +75,57 @@ const CustomPieTooltip = ({ active, payload }) => {
 };
 
 function Dashboard() {
+  // Estados para os dados da API, inicializados como vazios/padrão
+  const [summary, setSummary] = useState({ totalSpent: 0, totalBudget: 0, topCategory: "N/A" });
+  const [dailySpending, setDailySpending] = useState([]);
+  const [categoryDistribution, setCategoryDistribution] = useState([]);
+  const [categoryBudgets, setCategoryBudgets] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const [pieActiveIndex, setPieActiveIndex] = useState(null);
+  const COLORS = ["#00F6FF", "#FF00C1", "#A8FF00", "#8884d8", "#f2a600", "#ff5733"];
 
-  // Dados de exemplo (mock data)
-  const [summary, setSummary] = useState({
-    totalSpent: 2850.5,
-    totalBudget: 4500.0,
-    topCategory: "Alimentação",
-  });
+  // useEffect para buscar todos os dados do dashboard de uma vez
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      const backendUrl = "https://gerenciador-de-gastos-42k3.onrender.com";
+      const token = localStorage.getItem("token");
 
-  const [dailySpending, setDailySpending] = useState([
-    { day: "01/07", value: 150 },
-    { day: "02/07", value: 75 },
-    { day: "03/07", value: 230 },
-    { day: "04/07", value: 120 },
-    { day: "05/07", value: 90 },
-    { day: "06/07", value: 145 },
-    { day: "07/07", value: 300 },
-  ]);
+      try {
+        const response = await fetch(`${backendUrl}/dashboard/overview`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-  const [categoryDistribution, setCategoryDistribution] = useState([
-    { name: "Alimentação", value: 1200 },
-    { name: "Transporte", value: 650 },
-    { name: "Lazer", value: 500 },
-    { name: "Moradia", value: 200 },
-    { name: "Saúde", value: 200 },
-    { name: "Outros", value: 100.5 },
-  ]);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "Falha ao carregar dados do dashboard.");
+        }
 
-  const [categoryBudgets, setCategoryBudgets] = useState([
-    { id: 1, category: "Alimentação", spent: 1200, budget: 1500 },
-    { id: 2, category: "Transporte", spent: 650, budget: 600 }, // Exemplo estourado
-    { id: 3, category: "Lazer", spent: 500, budget: 700 },
-    { id: 4, category: "Moradia", spent: 200, budget: 1200 },
-    { id: 5, category: "Saúde", spent: 180, budget: 200 }, // Exemplo em alerta
-    { id: 6, category: "Outros", spent: 100.5, budget: 450 },
-  ]);
+        const data = await response.json();
+        
+        // Atualiza todos os estados com os dados da API
+        setSummary({
+          totalSpent: data.total_spent,
+          totalBudget: data.total_budget,
+          topCategory: data.top_category,
+        });
+        setDailySpending(data.daily_spending);
+        setCategoryDistribution(data.category_distribution);
+        setCategoryBudgets(data.category_budgets);
 
-  const COLORS = [
-    "#00F6FF",
-    "#FF00C1",
-    "#A8FF00",
-    "#8884d8",
-    "#f2a600",
-    "#ff5733",
-  ];
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []); // O array vazio [] garante que isso rode apenas uma vez ao montar a página
 
   // Estilo customizado para o Tooltip do gráfico de barras
   const barTooltipStyle = {
@@ -165,6 +137,24 @@ function Dashboard() {
   const barLabelStyle = {
     color: "var(--color-text-secondary)",
   };
+  
+  // Renderização condicional para loading e erro
+  if (isLoading) {
+    return (
+        <div className="h-full w-full flex flex-col items-center justify-center gap-4 p-8 static-grid-bg">
+            <FiLoader className="animate-spin text-electric-green" size={48} />
+            <p className="font-mono text-text-secondary">// Carregando overview do sistema...</p>
+        </div>
+    );
+  }
+
+  if (error) {
+    return (
+        <div className="h-full w-full flex flex-col items-center justify-center gap-4 p-8 static-grid-bg">
+            <p className="font-mono text-error text-center">// ERRO DE CONEXÃO<br/>{error}</p>
+        </div>
+    );
+  }
 
   return (
     <div className="h-full w-full p-4 md:p-8 static-grid-bg">
@@ -178,53 +168,30 @@ function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
         <div className="bg-dark-panel border border-dark-grid p-6">
           <div className="flex items-center gap-4">
-            {/* CORREÇÃO: Usando a cor 'secondary' (magenta) do nosso tema */}
-            <div className="p-3 bg-glitch-magenta/20 border border-glitch-magenta/50">
-              <FiTrendingUp className="text-glitch-magenta" size={24} />
+            <div className="p-3 bg-secondary/20 border border-secondary/50">
+              <FiTrendingUp className="text-secondary" size={24} />
             </div>
             <div>
-              <p className="font-mono text-sm text-text-secondary uppercase">
-                Gasto Total (Mês)
-              </p>
-              <p className="font-display text-3xl text-text-primary">
-                {summary.totalSpent.toLocaleString("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                })}
-              </p>
+              <p className="font-mono text-sm text-text-secondary uppercase">Gasto Total (Mês)</p>
+              <p className="font-display text-3xl text-text-primary">{summary.totalSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
             </div>
           </div>
         </div>
         <div className="bg-dark-panel border border-dark-grid p-6">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-electric-green/20 border border-electric-green/50">
-              <FiTarget className="text-electric-green" size={24} />
-            </div>
+            <div className="p-3 bg-electric-green/20 border border-electric-green/50"><FiTarget className="text-electric-green" size={24} /></div>
             <div>
-              <p className="font-mono text-sm text-text-secondary uppercase">
-                Orçamento Total
-              </p>
-              <p className="font-display text-3xl text-electric-green">
-                {summary.totalBudget.toLocaleString("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                })}
-              </p>
+              <p className="font-mono text-sm text-text-secondary uppercase">Orçamento Total</p>
+              <p className="font-display text-3xl text-electric-green">{summary.totalBudget.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
             </div>
           </div>
         </div>
         <div className="bg-dark-panel border border-dark-grid p-6">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-data-blue/20 border border-data-blue/50">
-              <FiStar className="text-data-blue" size={24} />
-            </div>
+            <div className="p-3 bg-data-blue/20 border border-data-blue/50"><FiStar className="text-data-blue" size={24} /></div>
             <div>
-              <p className="font-mono text-sm text-text-secondary uppercase">
-                Principal Categoria
-              </p>
-              <p className="font-display text-3xl text-text-primary">
-                {summary.topCategory}
-              </p>
+              <p className="font-mono text-sm text-text-secondary uppercase">Principal Categoria</p>
+              <p className="font-display text-3xl text-text-primary">{summary.topCategory}</p>
             </div>
           </div>
         </div>
@@ -233,40 +200,22 @@ function Dashboard() {
       {/* 2. Seção de Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6">
         <div className="lg:col-span-3 bg-dark-panel border border-dark-grid p-6">
-          <h3 className="font-display text-xl text-text-primary mb-4">
-            FLUXO DE GASTOS DIÁRIOS
-          </h3>
+          <h3 className="font-display text-xl text-text-primary mb-4">FLUXO DE GASTOS DIÁRIOS</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart
-              data={dailySpending}
-              margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
-            >
-              <XAxis
-                dataKey="day"
-                stroke="var(--color-text-secondary)"
-                tick={{ fontFamily: "var(--font-mono)" }}
-              />
-              <YAxis
-                stroke="var(--color-text-secondary)"
-                tick={{ fontFamily: "var(--font-mono)" }}
-              />
+            <BarChart data={dailySpending} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+              <XAxis dataKey="day" stroke="var(--color-text-secondary)" tick={{ fontFamily: "var(--font-mono)" }} />
+              <YAxis stroke="var(--color-text-secondary)" tick={{ fontFamily: "var(--font-mono)" }} />
               <Tooltip
                 cursor={{ fill: "rgba(26, 26, 26, 0.8)" }}
                 contentStyle={barTooltipStyle}
                 labelStyle={barLabelStyle}
               />
-              <Bar
-                dataKey="value"
-                fill="var(--color-electric-green)"
-                barSize={20}
-              />
+              <Bar dataKey="value" fill="var(--color-electric-green)" barSize={20} />
             </BarChart>
           </ResponsiveContainer>
         </div>
         <div className="lg:col-span-2 bg-dark-panel border border-dark-grid p-6">
-          <h3 className="font-display text-xl text-text-primary mb-4">
-            DISTRIBUIÇÃO POR CATEGORIA
-          </h3>
+          <h3 className="font-display text-xl text-text-primary mb-4">DISTRIBUIÇÃO POR CATEGORIA</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -289,23 +238,14 @@ function Dashboard() {
                     fill={COLORS[index % COLORS.length]}
                     style={{
                       transition: "opacity 0.2s, transform 0.2s",
-                      opacity:
-                        pieActiveIndex === null || pieActiveIndex === index
-                          ? 1
-                          : 0.4,
-                      transform:
-                        pieActiveIndex === index ? "scale(1.05)" : "scale(1)",
+                      opacity: pieActiveIndex === null || pieActiveIndex === index ? 1 : 0.4,
+                      transform: pieActiveIndex === index ? "scale(1.05)" : "scale(1)",
                     }}
                   />
                 ))}
               </Pie>
               <Tooltip content={<CustomPieTooltip />} />
-              <Legend
-                wrapperStyle={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "0.8rem",
-                }}
-              />
+              <Legend wrapperStyle={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -313,13 +253,11 @@ function Dashboard() {
 
       {/* 3. Seção de Orçamentos por Categoria */}
       <div className="mt-6">
-        <h3 className="font-display text-xl text-text-primary mb-4">
-          ACOMPANHAMENTO DE ORÇAMENTOS
-        </h3>
+        <h3 className="font-display text-xl text-text-primary mb-4">ACOMPANHAMENTO DE ORÇAMENTOS</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {categoryBudgets.map((item) => (
             <BudgetCategoryCard
-              key={item.id}
+              key={item.category} // Usando a categoria como chave, já que deve ser única
               category={item.category}
               spent={item.spent}
               budget={item.budget}

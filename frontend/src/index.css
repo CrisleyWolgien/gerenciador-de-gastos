@@ -1,25 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Share+Tech+Mono&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Share+Tech+Mono&display=swap");
 @import "tailwindcss";
 
 @theme {
   /* ... Cores e Fontes (sem alteração da versão anterior) ... */
-  --color-electric-green: #39FF14;
-  --color-glitch-magenta: #FF00FF;
-  --color-data-blue: #00BFFF;
+  --color-electric-green: #39ff14;
+  --color-glitch-magenta: #ff00ff;
+  --color-data-blue: #00bfff;
   --color-dark-void: #010101;
   --color-dark-panel: #101010;
   --color-dark-grid: #222222;
-  --color-text-primary: #F0F0F0;
-  --color-text-secondary: #A0A0A0;
+  --color-text-primary: #f0f0f0;
+  --color-text-secondary: #a0a0a0;
   --font-display: "Chakra Petch", sans-serif;
   --font-mono: "Share Tech Mono", monospace;
   --shadow-electric-glow: 0 0 15px 0 var(--color-electric-green);
+  --color-warning: #ffd700;
+  --color-error: #ff3366; 
 }
 
 @layer utilities {
   /* Efeito de brilho para a borda da sidebar */
   .sidebar-glow::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     right: -1px;
@@ -33,15 +35,37 @@
   /* ========================================================================
      NOVAS ANIMAÇÕES
      ======================================================================== */
-  
+
   /* Animação GLITCH para texto */
   @keyframes glitch {
-    0% { text-shadow: .05em 0 0 var(--color-glitch-magenta), -.025em -.05em 0 var(--color-data-blue), .025em .05em 0 var(--color-electric-green); }
-    2% { text-shadow: .05em 0 0 var(--color-glitch-magenta), -.025em -.05em 0 var(--color-data-blue), .025em .05em 0 var(--color-electric-green); }
-    49% { text-shadow: .05em 0 0 var(--color-glitch-magenta), -.025em -.05em 0 var(--color-data-blue), .025em .05em 0 var(--color-electric-green); }
-    50% { text-shadow: -.05em 0 0 var(--color-glitch-magenta), .025em .05em 0 var(--color-data-blue), -.05em -.025em 0 var(--color-electric-green); }
-    99% { text-shadow: -.05em 0 0 var(--color-glitch-magenta), .025em .05em 0 var(--color-data-blue), -.05em -.025em 0 var(--color-electric-green); }
-    100% { text-shadow: none; }
+    0% {
+      text-shadow: 0.05em 0 0 var(--color-glitch-magenta),
+        -0.025em -0.05em 0 var(--color-data-blue),
+        0.025em 0.05em 0 var(--color-electric-green);
+    }
+    2% {
+      text-shadow: 0.05em 0 0 var(--color-glitch-magenta),
+        -0.025em -0.05em 0 var(--color-data-blue),
+        0.025em 0.05em 0 var(--color-electric-green);
+    }
+    49% {
+      text-shadow: 0.05em 0 0 var(--color-glitch-magenta),
+        -0.025em -0.05em 0 var(--color-data-blue),
+        0.025em 0.05em 0 var(--color-electric-green);
+    }
+    50% {
+      text-shadow: -0.05em 0 0 var(--color-glitch-magenta),
+        0.025em 0.05em 0 var(--color-data-blue),
+        -0.05em -0.025em 0 var(--color-electric-green);
+    }
+    99% {
+      text-shadow: -0.05em 0 0 var(--color-glitch-magenta),
+        0.025em 0.05em 0 var(--color-data-blue),
+        -0.05em -0.025em 0 var(--color-electric-green);
+    }
+    100% {
+      text-shadow: none;
+    }
   }
   .animate-glitch {
     animation: glitch 5s infinite;
@@ -52,26 +76,38 @@
 
   /* Fundo de GRID animado */
   @keyframes animated-grid {
-    0% { background-position: 0 0; }
-    100% { background-position: 100% 100%; }
+    0% {
+      background-position: 0 0;
+    }
+    100% {
+      background-position: 100% 100%;
+    }
   }
   .animated-grid-bg {
     background-color: var(--color-dark-panel);
-    background-image: 
-      linear-gradient(var(--color-dark-grid) 1px, transparent 1px),
+    background-image: linear-gradient(
+        var(--color-dark-grid) 1px,
+        transparent 1px
+      ),
       linear-gradient(90deg, var(--color-dark-grid) 1px, transparent 1px);
     background-size: 50px 50px;
     animation: animated-grid 20s linear infinite;
   }
 
-   .plexus-bg {
+  .plexus-bg {
     background-color: var(--color-dark-void);
-    background-image: 
-      radial-gradient(circle at 15% 50%, var(--color-dark-grid) 1px, transparent 1px),
-      radial-gradient(circle at 85% 50%, var(--color-dark-grid) 1px, transparent 1px),
+    background-image: radial-gradient(
+        circle at 15% 50%,
+        var(--color-dark-grid) 1px,
+        transparent 1px
+      ),
+      radial-gradient(
+        circle at 85% 50%,
+        var(--color-dark-grid) 1px,
+        transparent 1px
+      ),
       radial-gradient(at 50% 15%, var(--color-dark-grid) 1px, transparent 1px),
       radial-gradient(at 50% 85%, var(--color-dark-grid) 1px, transparent 1px);
     background-size: 100px 100px;
   }
-
 }

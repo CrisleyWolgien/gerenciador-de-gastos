@@ -5,23 +5,21 @@ from routers import ExpensesRouters, UsersRoutes, DashBoardRouter, BudgetRouters
 app = FastAPI()
 
 # ========================================================================
-# CORREÇÃO DA CONFIGURAÇÃO DE CORS
+# CONFIGURAÇÃO DE CORS FINAL E ROBUSTA
 # ========================================================================
 
-# Lista de origens permitidas.
-# Adicione a URL do seu frontend em produção aqui no futuro.
+# Lista de origens permitidas para fazer requisições à sua API.
 origins = [
-    "http://localhost:5173",
-     "https://gerenciador-de-gastos-ten.vercel.app/" # Para desenvolvimento local
-    # Exemplo para produção: "https://seu-site.onrender.com" 
+    "http://localhost:5173",                      # Para seu desenvolvimento local
+    "https://gerenciador-de-gastos-ten.vercel.app"  # A URL do seu site em produção (sem a barra no final)
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,      # 1. Usar a lista explícita de origens
+    allow_origins=origins,      # Permite apenas as origens na lista acima
     allow_credentials=True,
-    allow_methods=["*"],        # 2. Manter os métodos permitidos
-    allow_headers=["*"],        # 3. Manter os headers permitidos (FastAPI é inteligente o suficiente para lidar com isso se as origens forem explícitas)
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], # Seja explícito sobre os métodos
+    allow_headers=["Authorization", "Content-Type", "Accept"], # Seja explícito sobre os cabeçalhos
 )
 
 # ========================================================================
@@ -30,6 +28,7 @@ app.add_middleware(
 def ping():
     return {"message": "ping"}
 
+# Incluindo as rotas dos seus outros arquivos
 app.include_router(ExpensesRouters.router)
 app.include_router(UsersRoutes.router)
 app.include_router(DashBoardRouter.router)

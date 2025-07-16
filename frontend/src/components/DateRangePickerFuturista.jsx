@@ -26,20 +26,19 @@ export const DateRangePickerFuturista = ({ onRangeChange, initialRange, onOpen, 
 
   const handleInputFocus = () => {
     setIsOpen(true);
-    if (onOpen) onOpen(); // Chama a função onOpen
+    if (onOpen) onOpen();
   };
 
   const handleBlur = (e) => {
-    // Pequeno delay para dar tempo do DayPicker registrar o clique
     setTimeout(() => {
       if (!e.currentTarget.contains(document.activeElement)) {
         setIsOpen(false);
-        if (onClose) onClose(); // Chama a função onClose
+        if (onClose) onClose();
       }
     }, 100);
   };
 
-  const headerText = format(currentDate, 'MMMM године', { locale: ptBR }); // Corrigi o erro de digitação aqui
+  const headerText = format(currentDate, 'MMMM године', { locale: ptBR });
   const daysOfWeek = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
   const firstDayOfMonth = getDay(startOfMonth(currentDate));
 

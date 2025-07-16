@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiLogIn, FiUserPlus, FiLoader } from "react-icons/fi"; // Adicionado FiLoader para o ícone de loading
+import { FiLogIn, FiUserPlus, FiLoader } from "react-icons/fi";
 
 // Componentes para os ícones de olho, para um código mais limpo
 const EyeOpenIcon = () => (
@@ -37,19 +37,15 @@ function LoginPage() {
 
       const data = await response.json();
       
-      // PASSO DE DEPURAÇÃO: Veja o que a API está realmente retornando
-      console.log("Resposta completa da API:", data);
 
       if (!response.ok) {
         throw new Error(data.detail || "Email ou senha incorreta");
       }
 
-      // VERIFICAÇÃO: Garante que o token existe antes de tentar usá-lo
       if (!data.access_token) {
         throw new Error("A resposta da API não contém um token de acesso.");
       }
 
-      // CORREÇÃO: Usando 'access_token' (padrão comum)
       localStorage.setItem("token", data.access_token);
       setApiResponse({ message: "Acesso concedido. Redirecionando...", type: "success" });
       setTimeout(() => navigate("/dashboard"), 1000);

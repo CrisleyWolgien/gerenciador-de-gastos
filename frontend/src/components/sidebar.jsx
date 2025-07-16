@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
-import logo from "../assets/logo.png"; // Sugiro um logo mais minimalista/geométrico
+import logo from "../assets/logo.png";
 
+// Ícones atualizados para mais clareza
 import { RxDashboard } from "react-icons/rx";
-import { PiChartBar, PiPlusCircle } from "react-icons/pi";
-import { FaRegMoneyBillAlt } from "react-icons/fa";
+import { PiChartBar, PiTerminalWindow } from "react-icons/pi";
 import {
   FiLogOut,
   FiSettings,
   FiChevronsRight,
   FiChevronsLeft,
+  FiList, // Ícone para a lista de transações
 } from "react-icons/fi";
 
 const SidebarLink = ({ to, isExpanded, icon, children }) => (
@@ -48,10 +49,9 @@ function Sidebar() {
   }, []);
 
   return (
-    // MUDANÇA: Fundo com grid animado e brilho na borda
     <aside
       className={`relative h-screen ${
-        isExpanded ? "w-70" : "w-24"
+        isExpanded ? "w-72" : "w-24" // Corrigido de w-70 para w-72 (valor padrão do Tailwind)
       } transition-all duration-300
                        p-4 flex flex-col gap-8 animated-grid-bg border-r border-dark-grid sidebar-glow`}
     >
@@ -64,7 +64,6 @@ function Sidebar() {
 
       <div className="flex items-center gap-4 px-4 h-12">
         <img src={logo} alt="Logo" className="w-10 h-10 flex-shrink-0" />
-        {/* MUDANÇA: Efeito Glitch aplicado ao título */}
         <div
           className={`overflow-hidden transition-opacity ${
             isExpanded ? "opacity-100" : "opacity-0"
@@ -85,18 +84,20 @@ function Sidebar() {
           DASHBOARD
         </SidebarLink>
 
+        {/* ÍCONE ATUALIZADO: PiTerminalWindow sugere entrada de dados, como um comando. */}
         <SidebarLink
           to="/new_entry"
           isExpanded={isExpanded}
-          icon={<FaRegMoneyBillAlt size={22} />}
+          icon={<PiTerminalWindow size={22} />}
         >
           NEW_ENTRY
         </SidebarLink>
 
+        {/* ÍCONE ATUALIZADO: FiList representa claramente uma lista de transações. */}
         <SidebarLink
           to="/expenses"
           isExpanded={isExpanded}
-          icon={<FaRegMoneyBillAlt size={22} />}
+          icon={<FiList size={22} />}
         >
           TRANSACTIONS
         </SidebarLink>

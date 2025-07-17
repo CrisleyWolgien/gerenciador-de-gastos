@@ -17,7 +17,6 @@ def create_user(userData: createUser):
     new_user = Users(
         name=userData.name,
         email=userData.email,
-        value_limit=userData.valueLimit,
         password=hash_password(userData.password),
     )
 
@@ -29,10 +28,7 @@ def create_user(userData: createUser):
         except IntegrityError:
             session.rollback()
             raise HTTPException(status_code=400, detail="E-mail já está em uso")
-        except Exception as e:
-            session.rollback()
-            raise HTTPException(status_code=400, detail=str(e))
-
+    return {"message": "Usuário criado com sucesso", "id": new_user.id}
 
 
 @router.put("/users/{id}")

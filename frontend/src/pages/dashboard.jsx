@@ -168,9 +168,7 @@ function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
         <div className="bg-dark-panel border border-dark-grid p-6">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-secondary/20 border border-secondary/50">
-              <FiTrendingUp className="text-secondary" size={24} />
-            </div>
+           <div className="p-3 bg-glitch-magenta/20 border border-glitch-magenta/50"><FiTrendingUp className="text-glitch-magenta" size={24} /></div>
             <div>
               <p className="font-mono text-sm text-text-secondary uppercase">Gasto Total (Mês)</p>
               <p className="font-display text-3xl text-text-primary">{summary.totalSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>

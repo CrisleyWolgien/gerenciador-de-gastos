@@ -15,10 +15,11 @@ class Expenses(SQLModel, table=True):
 
 
 class Users(SQLModel, table=True):
-    id: Optional[int] = Field(primary_key=True, default=None)
+    id: Optional[int] = Field(default=None, primary_key=True)
     name: str
-    email: EmailStr = Field(unique=True)
+    email: str = Field(unique=True)
     password: str
+
 
 
 class Budget(SQLModel, table=True):

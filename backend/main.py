@@ -9,24 +9,33 @@ app = FastAPI()
 # ========================================================================
 
 # Lista de origens permitidas para fazer requisições à sua API.
-origins = [
-    "http://localhost:5173",                      # Para seu desenvolvimento local
-    "https://gerenciador-de-gastos-ten.vercel.app"  # A URL do seu site em produção (sem a barra no final)
-]
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,      # Permite apenas as origens na lista acima
+    allow_origins=origins,  # Permite apenas as origens na lista acima
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], # Seja explícito sobre os métodos
-    allow_headers=["Authorization", "Content-Type", "Accept"], # Seja explícito sobre os cabeçalhos
+    allow_methods=[
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "OPTIONS",
+    ],  # Seja explícito sobre os métodos
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+    ],  # Seja explícito sobre os cabeçalhos
 )
 
 # ========================================================================
 
+
 @app.get("/")
 def ping():
     return {"message": "ping"}
+
 
 # Incluindo as rotas dos seus outros arquivos
 app.include_router(ExpensesRouters.router)

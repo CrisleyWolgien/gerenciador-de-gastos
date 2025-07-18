@@ -3,7 +3,7 @@ from sqlmodel import Session, select, func
 from models.expenses import Expenses, Users, Budget
 from db import engine
 from utils.jwt import get_current_user
-from datetime import date, timedelta
+from datetime import date
 
 router = APIRouter()
 

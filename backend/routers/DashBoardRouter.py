@@ -9,7 +9,7 @@ from typing import Optional
 router = APIRouter()
 
 @router.get("/dashboard/overview_by_date")
-def get_dashboard_overview(
+def get_dashboard_overview_by_date( # Renomeei para ser mais claro
     current_user: Users = Depends(get_current_user),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
@@ -18,7 +18,7 @@ def get_dashboard_overview(
     Fornece um overview completo para o dashboard, filtrado por um intervalo de datas.
     """
     with Session(engine) as session:
-        # Se nenhuma data for fornecida, usa o mês atual como padrão.
+        # Define o mês atual como padrão se nenhuma data for fornecida
         if not start_date or not end_date:
             today = date.today()
             start_date = today.replace(day=1)
@@ -36,19 +36,25 @@ def get_dashboard_overview(
         # --- 1. Calcular Cards de Resumo ---
         total_spent = session.exec(expense_query.with_only_columns(func.sum(Expenses.value))).one_or_none() or 0
         
-        # Orçamento total do usuário (não depende da data)
         budget_query = select(func.sum(Budget.value)).where(Budget.user_id == current_user.id)
         total_budget = session.exec(budget_query).one_or_none() or 0
 
-        # Categoria com maior gasto no período
+        # ========================================================================
+        # CORREÇÃO APLICADA AQUI
+        # ========================================================================
+        # Categoria com maior gasto no período (forma corrigida)
         top_category_query = (
-            expense_query
-            .with_only_columns(Expenses.category, func.sum(Expenses.value).label("total"))
+            select(Expenses.category)  # Seleciona APENAS o nome da categoria
+            .where(Expenses.user_id == current_user.id)
+            .where(Expenses.expense_date >= start_date)
+            .where(Expenses.expense_date <= end_date)
             .group_by(Expenses.category)
-            .order_by(func.sum(Expenses.value).desc())
+            .order_by(func.sum(Expenses.value).desc()) # Ordena pelo gasto
         )
+        # .first() agora retorna o nome da categoria (string) ou None
         top_category_result = session.exec(top_category_query).first()
-        top_category = top_category_result.category if top_category_result else "N/A"
+        top_category = top_category_result if top_category_result else "N/A"
+        # ========================================================================
 
         # --- 2. Dados para o Gráfico de Barras (Gastos Diários) ---
         daily_spending_query = (
@@ -81,7 +87,6 @@ def get_dashboard_overview(
         category_budgets_overview = []
         for category_name, budget_value in budget_map.items():
             spent_value = category_spending.get(category_name, 0)
-            # Inclui apenas categorias que têm um orçamento definido
             category_budgets_overview.append({
                 "category": category_name,
                 "spent": spent_value,

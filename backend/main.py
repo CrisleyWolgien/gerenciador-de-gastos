@@ -16,16 +16,10 @@ app.add_middleware(
     allow_origins=origins,  # Permite apenas as origens na lista acima
     allow_credentials=True,
     allow_methods=[
-        "GET",
-        "POST",
-        "PUT",
-        "DELETE",
-        "OPTIONS",
+        "*",
     ],  # Seja explícito sobre os métodos
     allow_headers=[
-        "Authorization",
-        "Content-Type",
-        "Accept",
+        "*",
     ],  # Seja explícito sobre os cabeçalhos
 )
 

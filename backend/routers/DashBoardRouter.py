@@ -1,72 +1,87 @@
-from fastapi.routing import APIRouter
-from fastapi import Depends
-from datetime import date
-
-from utils.jwt import get_current_user
+from fastapi import Depends, APIRouter
+from sqlmodel import Session, select, func
 from models.expenses import Expenses, Users, Budget
 from db import engine
-from sqlmodel import Session, select
-from sqlalchemy import func
+from utils.jwt import get_current_user
+from datetime import date, timedelta
 
 router = APIRouter()
 
-
-@router.get("/dashboard/totalSpent")
-def Dasboard_total_spent(current_user: Users = Depends(get_current_user)):
+@router.get("/dashboard/overview")
+def get_dashboard_overview(current_user: Users = Depends(get_current_user)):
+    """
+    Fornece um overview completo para o dashboard, focado no mês atual.
+    """
     with Session(engine) as session:
-        statement = select(func.sum(Expenses.value)).where(
-            Expenses.user_id == current_user.id
-        )
-        results = session.exec(statement).all()
-
-        return {"total_spent": results[0] or 0}
-
-@router.get("/dashboard/totalspent/time")
-def dashboard_total_spent_time(start_date: date, final_date: date, current_user: Users = Depends(get_current_user)):
-    with Session(engine) as session:
-        statement = select(func.sum(Expenses.value)).where(
+        today = date.today()
+        start_of_month = today.replace(day=1)
+        
+        # --- 1. Resumo (Cards) ---
+        # Gastos totais no mês atual
+        total_spent_query = select(func.sum(Expenses.value)).where(
             Expenses.user_id == current_user.id,
-            Expenses.date >= start_date,
-            Expenses.date <= final_date
+            Expenses.expense_date >= start_of_month
         )
+        total_spent = session.exec(total_spent_query).one_or_none() or 0
 
-        result = session.exec(statement).one_or_none() or (0,)
+        # Orçamento total do usuário
+        total_budget_query = select(func.sum(Budget.value)).where(Budget.user_id == current_user.id)
+        total_budget = session.exec(total_budget_query).one_or_none() or 0
+
+        # Principal categoria de gasto no mês
+        top_category_query = (
+            select(Expenses.category)
+            .where(Expenses.user_id == current_user.id, Expenses.expense_date >= start_of_month)
+            .group_by(Expenses.category)
+            .order_by(func.sum(Expenses.value).desc())
+        )
+        top_category = session.exec(top_category_query).first() or "N/A"
+
+        # --- 2. Gráfico de Barras (Gastos diários no mês) ---
+        daily_spending_query = (
+            select(
+                func.extract('day', Expenses.expense_date).label('day'),
+                func.sum(Expenses.value).label('value')
+            )
+            .where(Expenses.user_id == current_user.id, Expenses.expense_date >= start_of_month)
+            .group_by(func.extract('day', Expenses.expense_date))
+            .order_by(func.extract('day', Expenses.expense_date))
+        )
+        daily_spending = session.exec(daily_spending_query).all()
+        
+        # --- 3. Gráfico de Pizza (Distribuição no mês) ---
+        category_distribution_query = (
+            select(Expenses.category.label('name'), func.sum(Expenses.value).label('value'))
+            .where(Expenses.user_id == current_user.id, Expenses.expense_date >= start_of_month)
+            .group_by(Expenses.category)
+        )
+        category_distribution = session.exec(category_distribution_query).all()
+
+        # --- 4. Orçamentos de Categoria (Gastos do mês vs Orçamento total) ---
+        user_budgets_query = select(Budget.name_category, Budget.value).where(Budget.user_id == current_user.id)
+        budget_map = {b.name_category: b.value for b in session.exec(user_budgets_query).all()}
+        
+        category_spending_query = (
+            select(Expenses.category, func.sum(Expenses.value).label("total"))
+            .where(Expenses.user_id == current_user.id, Expenses.expense_date >= start_of_month)
+            .group_by(Expenses.category)
+        )
+        category_spending = {r.category: r.total for r in session.exec(category_spending_query).all()}
+
+        category_budgets_overview = []
+        for category_name, budget_value in budget_map.items():
+            spent_value = category_spending.get(category_name, 0)
+            category_budgets_overview.append({
+                "category": category_name,
+                "spent": spent_value,
+                "budget": budget_value
+            })
+
         return {
-            "start_date": start_date,
-            "final_date": final_date,
-            "total_spent": result[0] or 0
+            "total_spent": total_spent,
+            "total_budget": total_budget,
+            "top_category": top_category,
+            "daily_spending": daily_spending,
+            "category_distribution": category_distribution,
+            "category_budgets": category_budgets_overview,
         }
-
-
-
-@router.get("/dashboard/categorySpent")
-def dashboard_category_spent(
-    category: str, current_user: Users = Depends(get_current_user)
-):
-    with Session(engine) as session:
-        statement = select(func.sum(Expenses.value)).where(
-            Expenses.category == category, Expenses.user_id == current_user.id
-        )
-        results = session.exec(statement).one_or_none() or (0,)
-        return {"total_spent": results}
-
-
-@router.get("/dashboard/remaining")
-def dashboard_category_remaining(
-    category: str, current_user: Users = Depends(get_current_user)
-):
-    with Session(engine) as session:
-        statement_budget = select(Budget).where(
-            Budget.name_category == category, Budget.user_id == current_user.id
-        )
-        results_budget = session.exec(statement_budget).first()
-
-        statement_category = select(func.sum(Expenses.value)).where(
-            Expenses.category == category, Expenses.user_id == current_user.id
-        )
-
-        results_category = session.exec(statement_category).one_or_none() or (0,)
-
-        return {"budget": results_budget.value, "category": results_category}
-
-

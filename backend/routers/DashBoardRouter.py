@@ -19,31 +19,22 @@ def get_dashboard_stats(
     Fornece estatísticas do dashboard para um determinado período.
     """
     with Session(engine) as session:
-        # Consulta base para despesas do usuário
         expense_query = select(Expenses).where(Expenses.user_id == current_user.id)
 
-        # Aplica o filtro de data se fornecido
         if start_date:
             expense_query = expense_query.where(Expenses.expense_date >= start_date)
         if end_date:
             expense_query = expense_query.where(Expenses.expense_date <= end_date)
         
-        # Clona a consulta para diferentes agregações
-        total_spent_query = expense_query.with_only_columns(func.sum(Expenses.value))
-        total_transactions_query = expense_query.with_only_columns(func.count(Expenses.id))
+        total_spent = session.exec(expense_query.with_only_columns(func.sum(Expenses.value))).one_or_none() or 0
+        total_transactions = session.exec(expense_query.with_only_columns(func.count(Expenses.id))).one()
 
-        total_spent = session.exec(total_spent_query).one_or_none() or 0
-        total_transactions = session.exec(total_transactions_query).one()
-
-        # O orçamento total não é dependente da data
-        budget_query = select(func.sum(Budget.value)).where(
-            Budget.user_id == current_user.id
-        )
+        budget_query = select(func.sum(Budget.value)).where(Budget.user_id == current_user.id)
         total_budget = session.exec(budget_query).one_or_none() or 0
 
         return {
             "total_spent": total_spent,
-            "total_budget": total_budget,
+            "total_budget": total_budget, # Orçamento total não é filtrado por data
             "total_transactions": total_transactions,
         }
 
@@ -58,7 +49,6 @@ def get_expenses_by_category(
     Fornece um resumo dos gastos por categoria para um determinado período.
     """
     with Session(engine) as session:
-        # Consulta base
         query = (
             select(
                 Expenses.category,
@@ -70,21 +60,16 @@ def get_expenses_by_category(
             .order_by(func.sum(Expenses.value).desc())
         )
 
-        # Aplica o filtro de data
         if start_date:
             query = query.where(Expenses.expense_date >= start_date)
         if end_date:
             query = query.where(Expenses.expense_date <= end_date)
 
         results = session.exec(query).all()
-
-        # A consulta de orçamento não precisa de filtro de data
-        budget_query = select(Budget.name_category, Budget.value).where(
-            Budget.user_id == current_user.id
-        )
+        
+        budget_query = select(Budget.name_category, Budget.value).where(Budget.user_id == current_user.id)
         budgets = {b.name_category: b.value for b in session.exec(budget_query).all()}
 
-        # Combina os resultados
         response_data = [
             {
                 "category": r.category,
@@ -96,3 +81,29 @@ def get_expenses_by_category(
         ]
 
         return response_data
+
+# NOVA ROTA PARA O GRÁFICO DE GASTOS DIÁRIOS
+@router.get("/dashboard/spending_over_time")
+def get_spending_over_time(
+    current_user: Users = Depends(get_current_user),
+    start_date: Optional[date] = Query(..., description="Data de início do filtro (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(..., description="Data de fim do filtro (YYYY-MM-DD)"),
+):
+    """
+    Agrega os gastos por dia dentro de um intervalo de datas.
+    """
+    with Session(engine) as session:
+        query = (
+            select(
+                Expenses.expense_date,
+                func.sum(Expenses.value).label("total_spent")
+            )
+            .where(Expenses.user_id == current_user.id)
+            .where(Expenses.expense_date >= start_date)
+            .where(Expenses.expense_date <= end_date)
+            .group_by(Expenses.expense_date)
+            .order_by(Expenses.expense_date)
+        )
+        
+        results = session.exec(query).all()
+        return [{"date": r.expense_date, "total": r.total_spent} for r in results]

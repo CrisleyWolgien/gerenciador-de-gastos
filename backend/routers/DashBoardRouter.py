@@ -1,87 +1,91 @@
-from fastapi import Depends, APIRouter
-from sqlmodel import Session, select, func
-from models.expenses import Expenses, Users, Budget
-from db import engine
+from fastapi.routing import APIRouter
+from fastapi import Depends, Query
+from datetime import date, datetime, timedelta
+from collections import defaultdict
+from typing import Optional
+
 from utils.jwt import get_current_user
-from datetime import date
+from models.expenses import Users, Budget, Expenses
+from schemas.DashboardSchema import DashboardOverview, DailySpending, CategoryData, CategoryBudgetStatus
+from db import engine
+from sqlmodel import Session, select
+from sqlalchemy import func
 
 router = APIRouter()
 
-@router.get("/dashboard/overview")
-def get_dashboard_overview(current_user: Users = Depends(get_current_user)):
+@router.get("/dashboard/overview", response_model=DashboardOverview)
+def get_dashboard_overview(
+    start_date: Optional[date] = Query(None, description="Data de início (YYYY-MM-DD). Padrão: início do mês atual."),
+    end_date: Optional[date] = Query(None, description="Data de fim (YYYY-MM-DD). Padrão: fim do mês atual."),
+    current_user: Users = Depends(get_current_user)
+):
     """
-    Fornece um overview completo para o dashboard, focado no mês atual.
+    Retorna um overview completo com todos os dados necessários para o dashboard.
     """
     with Session(engine) as session:
-        today = date.today()
-        start_of_month = today.replace(day=1)
-        
-        # --- 1. Resumo (Cards) ---
-        # Gastos totais no mês atual
-        total_spent_query = select(func.sum(Expenses.value)).where(
+        # Define o período padrão como o mês atual se as datas não forem fornecidas
+        if not start_date or not end_date:
+            today = datetime.now()
+            start_date = today.replace(day=1).date()
+            # Lógica para pegar o último dia do mês
+            next_month = today.replace(day=28) + timedelta(days=4)
+            end_date = (next_month - timedelta(days=next_month.day)).date()
+
+        # 1. Busca todas as despesas e orçamentos do usuário de uma vez
+        expenses_statement = select(Expenses).where(
             Expenses.user_id == current_user.id,
-            Expenses.expense_date >= start_of_month
+            Expenses.date_created >= start_date,
+            Expenses.date_created <= end_date
         )
-        total_spent = session.exec(total_spent_query).one_or_none() or 0
+        user_expenses = session.exec(expenses_statement).all()
 
-        # Orçamento total do usuário
-        total_budget_query = select(func.sum(Budget.value)).where(Budget.user_id == current_user.id)
-        total_budget = session.exec(total_budget_query).one_or_none() or 0
+        budgets_statement = select(Budget).where(Budget.user_id == current_user.id)
+        user_budgets = session.exec(budgets_statement).all()
 
-        # Principal categoria de gasto no mês
-        top_category_query = (
-            select(Expenses.category)
-            .where(Expenses.user_id == current_user.id, Expenses.expense_date >= start_of_month)
-            .group_by(Expenses.category)
-            .order_by(func.sum(Expenses.value).desc())
-        )
-        top_category = session.exec(top_category_query).first() or "N/A"
-
-        # --- 2. Gráfico de Barras (Gastos diários no mês) ---
-        daily_spending_query = (
-            select(
-                func.extract('day', Expenses.expense_date).label('day'),
-                func.sum(Expenses.value).label('value')
-            )
-            .where(Expenses.user_id == current_user.id, Expenses.expense_date >= start_of_month)
-            .group_by(func.extract('day', Expenses.expense_date))
-            .order_by(func.extract('day', Expenses.expense_date))
-        )
-        daily_spending = session.exec(daily_spending_query).all()
+        # 2. Processa os dados em memória (mais eficiente que múltiplas queries)
         
-        # --- 3. Gráfico de Pizza (Distribuição no mês) ---
-        category_distribution_query = (
-            select(Expenses.category.label('name'), func.sum(Expenses.value).label('value'))
-            .where(Expenses.user_id == current_user.id, Expenses.expense_date >= start_of_month)
-            .group_by(Expenses.category)
-        )
-        category_distribution = session.exec(category_distribution_query).all()
+        # A. Cálculos gerais
+        total_spent = sum(exp.value for exp in user_expenses)
+        total_budget = sum(b.value for b in user_budgets)
 
-        # --- 4. Orçamentos de Categoria (Gastos do mês vs Orçamento total) ---
-        user_budgets_query = select(Budget.name_category, Budget.value).where(Budget.user_id == current_user.id)
-        budget_map = {b.name_category: b.value for b in session.exec(user_budgets_query).all()}
+        # B. Agrupa gastos por categoria e por dia
+        spent_by_category = defaultdict(float)
+        spent_by_day = defaultdict(float)
+        for exp in user_expenses:
+            spent_by_category[exp.category] += exp.value
+            day_str = exp.date_created.strftime('%d/%m')
+            spent_by_day[day_str] += exp.value
         
-        category_spending_query = (
-            select(Expenses.category, func.sum(Expenses.value).label("total"))
-            .where(Expenses.user_id == current_user.id, Expenses.expense_date >= start_of_month)
-            .group_by(Expenses.category)
+        # C. Encontra a categoria com maior gasto
+        top_category = max(spent_by_category, key=spent_by_category.get) if spent_by_category else "N/A"
+
+        # 3. Formata os dados para a resposta final, conforme o schema
+
+        # Formata para o gráfico de gastos diários
+        daily_spending_list = [
+            DailySpending(day=day, value=value) for day, value in sorted(spent_by_day.items())
+        ]
+
+        # Formata para o gráfico de pizza de distribuição
+        category_distribution_list = [
+            CategoryData(name=cat, value=val) for cat, val in spent_by_category.items()
+        ]
+
+        # Formata para os cards de acompanhamento de orçamento
+        budgets_dict = {b.name_category: b.value for b in user_budgets}
+        category_budgets_list = [
+            CategoryBudgetStatus(
+                category=name,
+                spent=spent_by_category.get(name, 0),
+                budget=budgets_dict.get(name, 0)
+            ) for name in budgets_dict
+        ]
+
+        return DashboardOverview(
+            total_spent=total_spent,
+            total_budget=total_budget,
+            top_category=top_category,
+            daily_spending=daily_spending_list,
+            category_distribution=category_distribution_list,
+            category_budgets=category_budgets_list
         )
-        category_spending = {r.category: r.total for r in session.exec(category_spending_query).all()}
-
-        category_budgets_overview = []
-        for category_name, budget_value in budget_map.items():
-            spent_value = category_spending.get(category_name, 0)
-            category_budgets_overview.append({
-                "category": category_name,
-                "spent": spent_value,
-                "budget": budget_value
-            })
-
-        return {
-            "total_spent": total_spent,
-            "total_budget": total_budget,
-            "top_category": top_category,
-            "daily_spending": daily_spending,
-            "category_distribution": category_distribution,
-            "category_budgets": category_budgets_overview,
-        }

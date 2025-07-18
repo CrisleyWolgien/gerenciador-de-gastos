@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { FiTrendingUp, FiTarget, FiStar, FiLoader } from "react-icons/fi";
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 
 // ========================================================================
 // LÓGICA DE CORES PARA O DEGRADÊ
@@ -242,7 +243,7 @@ function Dashboard() {
                 ))}
               </Pie>
               <Tooltip content={<CustomPieTooltip />} />
-              <Legend wrapperStyle={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", paddingTop: '10px' }} />
+              <Legend wrapperStyle={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -254,7 +255,7 @@ function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {categoryBudgets.map((item) => (
             <BudgetCategoryCard
-              key={item.category}
+              key={item.category} // Usando a categoria como chave, já que deve ser única
               category={item.category}
               spent={item.spent}
               budget={item.budget}

@@ -1,22 +1,22 @@
 import { useState, useEffect } from "react";
 import { FiX, FiLoader, FiSave } from "react-icons/fi";
-// 1. Importe o nosso componente de select customizado
 import { CustomSelect } from "./CustomSelect";
+import { format, parseISO } from 'date-fns'; // Importar funções de data
 
-// O modal recebe a despesa a ser editada (expenseToEdit) e as funções de controle
 function EditExpenseModal({ expenseToEdit, onClose, onSuccess }) {
-  // Inicializa os estados com os dados da despesa que está sendo editada
   const [name, setName] = useState(expenseToEdit.name);
   const [description, setDescription] = useState(expenseToEdit.description);
   const [value, setValue] = useState(expenseToEdit.value);
   const [category, setCategory] = useState(expenseToEdit.category);
+  // Formatar a data inicial para o formato YYYY-MM-DD
+  const [expenseDate, setExpenseDate] = useState(
+    expenseToEdit.expense_date ? format(parseISO(expenseToEdit.expense_date), 'yyyy-MM-dd') : ''
+  );
 
-  // Estados para as categorias e feedback da API
   const [availableCategories, setAvailableCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Busca as categorias disponíveis quando o modal é montado
   useEffect(() => {
     const fetchCategories = async () => {
       const backendUrl = "https://gerenciador-de-gastos-42k3.onrender.com";
@@ -46,13 +46,13 @@ function EditExpenseModal({ expenseToEdit, onClose, onSuccess }) {
       description,
       value: parseFloat(value),
       category,
+      expense_date: expenseDate, // Incluir a data na atualização
     };
 
     const backendUrl = "https://gerenciador-de-gastos-42k3.onrender.com";
     const token = localStorage.getItem("token");
 
     try {
-      // A requisição agora é PUT e inclui o ID da despesa na URL
       const response = await fetch(`${backendUrl}/expense/${expenseToEdit.id}`, {
         method: "PUT",
         headers: {
@@ -67,8 +67,8 @@ function EditExpenseModal({ expenseToEdit, onClose, onSuccess }) {
         throw new Error(errorData.detail || "Falha ao atualizar despesa.");
       }
       
-      onSuccess(); // Avisa a página principal para atualizar a lista
-      onClose();   // Fecha o modal
+      onSuccess();
+      onClose();
 
     } catch (err) {
       setError(err.message);
@@ -78,11 +78,8 @@ function EditExpenseModal({ expenseToEdit, onClose, onSuccess }) {
   };
 
   return (
-    // Fundo semi-transparente que cobre a tela
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-panel/80 backdrop-blur-sm">
-      {/* O painel do modal */}
       <div className="relative w-full max-w-lg bg-dark-panel border border-dark-grid rounded-none shadow-lg shadow-black/50">
-        {/* Cabeçalho do Modal */}
         <div className="flex items-center justify-between p-4 border-b border-dark-grid">
           <h2 className="font-display text-2xl text-text-primary tracking-widest">EDITAR TRANSAÇÃO</h2>
           <button onClick={onClose} className="text-text-secondary hover:text-error">
@@ -90,7 +87,6 @@ function EditExpenseModal({ expenseToEdit, onClose, onSuccess }) {
           </button>
         </div>
 
-        {/* Formulário */}
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
           <div>
             <label className="font-mono text-sm text-text-secondary uppercase">Nome</label>
@@ -113,7 +109,17 @@ function EditExpenseModal({ expenseToEdit, onClose, onSuccess }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="font-mono text-sm text-text-secondary uppercase">Data</label>
+              <input
+                type="date"
+                value={expenseDate}
+                onChange={(e) => setExpenseDate(e.target.value)}
+                className="w-full mt-2 p-2 font-mono text-text-primary bg-dark-surface border-2 border-dark-grid focus:border-data-blue focus:outline-none"
+                required
+              />
+            </div>
             <div>
               <label className="font-mono text-sm text-text-secondary uppercase">Valor (R$)</label>
               <input
@@ -127,7 +133,6 @@ function EditExpenseModal({ expenseToEdit, onClose, onSuccess }) {
             </div>
             <div>
               <label className="font-mono text-sm text-text-secondary uppercase">Categoria</label>
-              {/* 2. Substituímos o <select> pelo nosso novo componente */}
               <CustomSelect
                 options={availableCategories}
                 value={category}

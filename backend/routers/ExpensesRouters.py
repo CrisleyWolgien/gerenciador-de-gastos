@@ -20,16 +20,15 @@ def create_expense(
     """
     Cria uma nova despesa para o usuário autenticado.
     """
-    # Garante que o ID do usuário não seja nulo
     assert current_user.id is not None
 
     new_expense = Expenses(
         name=expenseData.name,
         description=expenseData.description,
-        category=expenseData.category,  # Pega o valor do Enum
+        category=expenseData.category,
         value=expenseData.value,
+        expense_date=expenseData.expense_date, # Usando a data enviada pelo usuário
         user_id=current_user.id,
-        # O campo date_created será preenchido automaticamente pelo banco de dados
     )
 
     with Session(engine) as session:
@@ -41,13 +40,8 @@ def create_expense(
 
 @router.get("/expenses", response_model=List[Expenses])
 def list_expenses(
-    # Parâmetros de filtro, incluindo os de data
-    start_date: Optional[date] = Query(
-        None, description="Data de início do filtro (YYYY-MM-DD)"
-    ),
-    end_date: Optional[date] = Query(
-        None, description="Data de fim do filtro (YYYY-MM-DD)"
-    ),
+    start_date: Optional[date] = Query(None, description="Data de início do filtro (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="Data de fim do filtro (YYYY-MM-DD)"),
     category: Optional[str] = Query(None, description="Filtrar por categoria"),
     search: Optional[str] = Query(None, description="Buscar por nome ou descrição"),
     current_user: Users = Depends(get_current_user),
@@ -56,15 +50,13 @@ def list_expenses(
     Lista as despesas do usuário autenticado com filtros opcionais.
     """
     with Session(engine) as session:
-        # Começa a query selecionando despesas do usuário logado
         statement = select(Expenses).where(Expenses.user_id == current_user.id)
 
-        # Aplica os filtros se eles forem fornecidos
         if start_date:
-            statement = statement.where(Expenses.date_created >= start_date)
+            statement = statement.where(Expenses.expense_date >= start_date) # Filtrando por expense_date
 
         if end_date:
-            statement = statement.where(Expenses.date_created <= end_date)
+            statement = statement.where(Expenses.expense_date <= end_date) # Filtrando por expense_date
 
         if category and category != "Todas":
             statement = statement.where(Expenses.category == category)
@@ -72,15 +64,12 @@ def list_expenses(
         if search:
             statement = statement.where(
                 or_(
-                    Expenses.name.ilike(
-                        f"%{search}%"
-                    ),  # ilike para busca case-insensitive
+                    Expenses.name.ilike(f"%{search}%"),
                     Expenses.description.ilike(f"%{search}%"),
                 )
             )
 
-        # Ordena os resultados pela data mais recente
-        statement = statement.order_by(Expenses.date_created.desc())
+        statement = statement.order_by(Expenses.expense_date.desc()) # Ordenando por expense_date
 
         results = session.exec(statement).all()
         return results
@@ -92,15 +81,11 @@ def delete_expense(id: int, current_user: Users = Depends(get_current_user)):
     Deleta uma despesa específica do usuário.
     """
     with Session(engine) as session:
-        # Busca a despesa pelo ID
         expense_to_delete = session.get(Expenses, id)
 
         if not expense_to_delete:
-            return JSONResponse(
-                status_code=404, content={"message": "Despesa não encontrada"}
-            )
+            return JSONResponse(status_code=404, content={"message": "Despesa não encontrada"})
 
-        # Verifica se a despesa pertence ao usuário logado
         if expense_to_delete.user_id != current_user.id:
             return JSONResponse(status_code=403, content={"message": "Acesso negado"})
 
@@ -121,21 +106,14 @@ def modify_expense(
         expense_to_update = session.get(Expenses, id)
 
         if not expense_to_update:
-            return JSONResponse(
-                status_code=404, content={"message": "Despesa não encontrada"}
-            )
+            return JSONResponse(status_code=404, content={"message": "Despesa não encontrada"})
 
         if expense_to_update.user_id != current_user.id:
             return JSONResponse(status_code=403, content={"message": "Acesso negado"})
 
-        # Pega os dados enviados e atualiza o modelo
         update_data = expenseData.model_dump(exclude_unset=True)
         for key, value in update_data.items():
-            # Se a categoria for um Enum, pega o seu valor
-            if key == "category" and hasattr(value, "value"):
-                setattr(expense_to_update, key, value.value)
-            else:
-                setattr(expense_to_update, key, value)
+            setattr(expense_to_update, key, value)
 
         session.add(expense_to_update)
         session.commit()

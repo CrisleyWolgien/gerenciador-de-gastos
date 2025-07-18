@@ -7,14 +7,11 @@ import EditExpenseModal from "../components/EditExpenseModal";
 import { CustomSelect } from "../components/CustomSelect";
 
 function Expenses() {
-  // Estados para os dados da API
   const [expenses, setExpenses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [availableCategories, setAvailableCategories] = useState([]);
   const [editingExpense, setEditingExpense] = useState(null);
-
-  // Estados para o painel de resumo e filtros
   const [quantiaDeDespesa, setQuantiaDeDespesa] = useState("0");
   const [somaTotalDeDespesas, setSomaTotalDeDespesas] = useState("0,00");
   const [periodo, setPeriodo] = useState(
@@ -26,9 +23,7 @@ function Expenses() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
-  // O estado 'isDatePickerOpen' não é mais necessário aqui.
 
-  // Função para buscar os dados da API
   const fetchExpenses = async () => {
     setIsLoading(true);
     setError(null);
@@ -76,7 +71,6 @@ function Expenses() {
     }
   };
 
-  // useEffect para buscar as categorias dinamicamente
   useEffect(() => {
     const fetchCategories = async () => {
       const backendUrl = "https://gerenciador-de-gastos-42k3.onrender.com";
@@ -95,12 +89,10 @@ function Expenses() {
     fetchCategories();
   }, []);
 
-  // useEffect para buscar as despesas sempre que um filtro mudar
   useEffect(() => {
     fetchExpenses();
   }, [dateRange, searchTerm, selectedCategory]);
 
-  // Atualiza o texto do período exibido no painel
   useEffect(() => {
     if (dateRange && dateRange.from && dateRange.to) {
       const fromFormatted = format(dateRange.from, "dd/MM/yy");
@@ -111,14 +103,12 @@ function Expenses() {
     }
   }, [dateRange]);
 
-  // Função segura para formatar a data na tabela
   const formatarDataSegura = (dateString) => {
     if (!dateString) return "---";
     const data = parseISO(dateString);
     return isValid(data) ? format(data, "dd/MM/yyyy") : "Inválida";
   };
 
-  // Função para deletar uma despesa
   const handleDelete = async (expenseId) => {
     if (
       !window.confirm(
@@ -202,7 +192,7 @@ function Expenses() {
                 className="border-b border-dark-grid last:border-none hover:bg-dark-surface/50"
               >
                 <td className="p-4 text-text-primary whitespace-nowrap">
-                  {formatarDataSegura(expense.date_created)}
+                  {formatarDataSegura(expense.expense_date)}
                 </td>
                 <td className="p-4">
                   <p className="text-text-primary font-bold">{expense.name}</p>
@@ -267,7 +257,7 @@ function Expenses() {
                     {expense.category}
                   </span>
                   <span className="text-text-primary">
-                    {formatarDataSegura(expense.date_created)}
+                    {formatarDataSegura(expense.expense_date)}
                   </span>
                 </div>
                 <div className="flex gap-4 text-xl">
@@ -341,7 +331,6 @@ function Expenses() {
           </div>
         </div>
 
-        {/* CORREÇÃO: Adicionado 'relative' e um 'z-index' fixo para o painel de filtros */}
         <div className="relative mt-6 p-4 bg-dark-panel/90 backdrop-blur-sm border border-dark-grid z-20">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div className="md:col-span-2">
@@ -377,13 +366,11 @@ function Expenses() {
               <DateRangePickerFuturista
                 onRangeChange={setDateRange}
                 initialRange={dateRange}
-                // Não precisamos mais das funções onOpen/onClose aqui
               />
             </div>
           </div>
         </div>
 
-        {/* CORREÇÃO: Adicionado 'relative' e um 'z-index' menor para a tabela */}
         <div className="relative mt-6 bg-dark-panel/90 backdrop-blur-sm border border-dark-grid z-10">
           <div className="overflow-x-auto">{renderContent()}</div>
         </div>

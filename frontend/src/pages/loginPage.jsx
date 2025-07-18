@@ -99,7 +99,7 @@ function LoginPage() {
               <div className={`text-center font-mono p-2 border ${
                   apiResponse.type === 'error' 
                   ? 'text-error bg-error/10 border-error/50' 
-                  : 'text-success bg-success/10 border-success/50'
+                  : 'text-green-600 bg-green-300/10 border-green-300/50'
               }`}>
                 {apiResponse.message}
               </div>

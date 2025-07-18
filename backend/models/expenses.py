@@ -1,5 +1,5 @@
 from sqlmodel import SQLModel, Field
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 from pydantic import EmailStr
 
@@ -10,7 +10,8 @@ class Expenses(SQLModel, table=True):
     description: str
     category: str
     value: float
-    date_created: date = Field(default_factory=date.today)
+    expense_date: date = Field(index=True) # Campo para a data que o usuário escolhe
+    date_created: datetime = Field(default_factory=datetime.now, nullable=False) # Data de criação do registro
     user_id: int = Field(foreign_key="users.id")
 
 

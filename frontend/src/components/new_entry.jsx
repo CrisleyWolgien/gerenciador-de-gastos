@@ -1,17 +1,15 @@
 import { useEffect, useState } from "react";
 import { FiPlusCircle, FiLoader } from "react-icons/fi";
-// 1. Importe o nosso componente de Select customizado
 import { CustomSelect } from "../components/CustomSelect";
+import { format } from "date-fns"; // Importar a função de formatação
 
 function New_entry() {
-  // Estados para controlar os campos do formulário
   const [inputname, setInputName] = useState("");
   const [inputdiscription, setInputDiscription] = useState("");
   const [inputvalue, setInputValue] = useState("");
-  
+  const [inputDate, setInputDate] = useState(format(new Date(), 'yyyy-MM-dd')); // Estado para a data
   const [availableCategories, setAvailableCategories] = useState([]);
   const [InputCategory, setInputCategory] = useState("");
-
   const [isLoading, setIsLoading] = useState(false);
   const [apiResponse, setApiResponse] = useState({ message: "", type: "" });
 
@@ -55,6 +53,7 @@ function New_entry() {
       description: inputdiscription,
       category: InputCategory,
       value: parseFloat(inputvalue),
+      expense_date: inputDate, // Enviar a data para a API
     };
 
     const backendUrl = "https://gerenciador-de-gastos-42k3.onrender.com";
@@ -79,6 +78,7 @@ function New_entry() {
       setInputName("");
       setInputDiscription("");
       setInputValue("");
+      setInputDate(format(new Date(), 'yyyy-MM-dd')); // Resetar a data
       
       setTimeout(() => setApiResponse({ message: "", type: "" }), 3000);
 
@@ -123,8 +123,18 @@ function New_entry() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1">
+              <label className="font-mono text-sm text-text-secondary uppercase">// Data</label>
+              <input
+                type="date"
+                value={inputDate}
+                onChange={(e) => setInputDate(e.target.value)}
+                required
+                className="w-full mt-2 p-3 font-mono text-text-primary bg-dark-surface border-2 border-dark-grid rounded-none focus:border-electric-green focus:outline-none"
+              />
+            </div>
+            <div className="md:col-span-1">
               <label className="font-mono text-sm text-text-secondary uppercase">// Valor (R$)</label>
               <input
                 type="number"
@@ -136,14 +146,13 @@ function New_entry() {
                 className="w-full mt-2 p-3 font-mono text-text-primary bg-dark-surface border-2 border-dark-grid rounded-none focus:border-electric-green focus:outline-none placeholder:text-text-secondary/50"
               />
             </div>
-            <div>
+            <div className="md:col-span-1">
               <label className="font-mono text-sm text-text-secondary uppercase">// Categoria</label>
-              {/* 2. Substituímos o <select> pelo nosso novo componente */}
               <CustomSelect
                 options={availableCategories}
                 value={InputCategory}
                 onChange={setInputCategory}
-                placeholder="Selecione uma categoria..."
+                placeholder="Selecione..."
               />
             </div>
           </div>

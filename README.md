@@ -119,7 +119,3 @@ npm run dev
 | GET | /budget/categories | Listagem simples de categorias |
 
 ---
-
-## 📌 Status do Projeto
-✅ MVP funcional  
-🚧 Melhorias em desenvolvimento (UI + mais dashboards)

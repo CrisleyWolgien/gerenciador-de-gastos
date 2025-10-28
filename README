@@ -1,0 +1,169 @@
+Gerenciador de Gastos (CyberCaixa)
+
+CyberCaixa é uma aplicação full-stack de gerenciamento de finanças pessoais. Ela apresenta uma interface de usuário moderna e temática "cyberpunk" para rastrear despesas, gerenciar orçamentos e visualizar hábitos de consumo.
+
+O projeto é dividido em um Backend (construído com FastAPI em Python) e um Frontend (construído com React e Vite).
+
+🚀 Funcionalidades Principais
+
+    Autenticação de Usuário: Sistema completo de registro e login de usuários usando tokens JWT.
+
+    Dashboard Visual (SYSTEM_OVERVIEW):
+
+        Visão geral com Gasto Total, Orçamento Total e a Principal Categoria de gasto.
+
+        Gráfico de barras para o fluxo de gastos diários.
+
+        Gráfico de pizza para a distribuição de gastos por categoria.
+
+        Cards de acompanhamento do progresso de cada orçamento.
+
+    Gestão de Transações (TRANSACTIONS):
+
+        CRUD completo para despesas: crie, liste, edite e delete transações.
+
+        Criação de novas entradas (NEW_ENTRY) com campos para nome, descrição, valor, data e categoria.
+
+    Filtros Avançados:
+
+        Filtre transações por nome, descrição ou categoria.
+
+        Selecione períodos de data customizados com um seletor de intervalo (DateRangePicker).
+
+    Gestão de Orçamento (BUDGET_GRID):
+
+        Crie, visualize e delete categorias de orçamento personalizadas.
+
+    Interface Temática:
+
+        UI com tema "cyberpunk" usando fontes customizadas (Chakra Petch, Share Tech Mono).
+
+        Fundo animado "Plexus" e efeitos "glitch" para uma estética futurista.
+
+🛠️ Tecnologias Utilizadas
+
+Backend
+
+    Python 3: Linguagem principal da aplicação.
+
+    FastAPI: Framework web para a construção da API RESTful.
+
+    SQLModel: ORM para interação com o banco de dados e validação de dados.
+
+    PostgreSQL: Banco de dados relacional (conectado via Neon.tech, conforme backend/.env).
+
+    JWT (Passlib & python-jose): Para autenticação de usuário baseada em token.
+
+    Uvicorn: Servidor ASGI para rodar a aplicação FastAPI.
+
+Frontend
+
+    React 19: Biblioteca principal para a construção da interface de usuário.
+
+    Vite: Ferramenta de build e servidor de desenvolvimento de alta performance.
+
+    Tailwind CSS: Framework de estilização utility-first (com um tema customizado em frontend/src/index.css).
+
+    React Router: Para roteamento no lado do cliente (<Routes>, <PrivateRoute>).
+
+    Recharts: Biblioteca para a criação dos gráficos do dashboard.
+
+    date-fns: Para manipulação e formatação de datas.
+
+⚙️ Instalação e Execução
+
+Pré-requisitos
+
+    Python 3.10+
+
+    Node.js 18+
+
+    Um banco de dados PostgreSQL acessível.
+
+1. Configuração do Backend
+
+    Navegue até a pasta backend:
+    Bash
+
+cd backend
+
+Crie e ative um ambiente virtual:
+Bash
+
+# Linux/macOS
+python3 -m venv venv
+source venv/bin/activate
+
+# Windows
+python -m venv venv
+.\venv\Scripts\activate
+
+Instale as dependências:
+Bash
+
+pip install -r requirements.txt
+
+Crie um arquivo .env na raiz da pasta backend (você pode usar o arquivo backend/.env fornecido como base) e defina as seguintes variáveis:
+Snippet de código
+
+DATABASE_URL="postgresql://user:password@host:port/dbname"
+SECRET_KEY="seu_segredo_super_secreto_para_jwt"
+ALGORITHM="HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES=300
+
+Crie as tabelas no banco de dados:
+Bash
+
+python create_tables.py
+
+Inicie o servidor backend:
+Bash
+
+    uvicorn main:app --reload
+
+    O servidor estará rodando em http://127.0.0.1:8000.
+
+2. Configuração do Frontend
+
+    Em um novo terminal, navegue até a pasta frontend:
+    Bash
+
+cd frontend
+
+Instale as dependências do Node.js:
+Bash
+
+npm install
+
+Inicie o servidor de desenvolvimento:
+Bash
+
+    npm run dev
+
+    A aplicação React estará acessível em http://localhost:5173 (ou outra porta indicada pelo Vite).
+
+🗺️ Principais Endpoints da API
+
+    POST /users: Cria um novo usuário.
+
+    POST /login: Autentica um usuário e retorna um token JWT.
+
+    GET /dashboard/overview: Retorna todos os dados agregados para o dashboard (gastos, orçamentos, gráficos).
+
+    GET /expenses: Lista todas as despesas do usuário, com suporte a filtros de data, categoria e busca.
+
+    POST /expenses: Cria uma nova despesa.
+
+    PUT /expense/{id}: Atualiza uma despesa existente.
+
+    POST /expense/{id}/delete: Deleta uma despesa.
+
+    GET /budgets: Lista todas as categorias de orçamento criadas pelo usuário.
+
+    POST /budget: Cria uma nova categoria de orçamento.
+
+    PUT /budget/{id}: Atualiza uma categoria de orçamento.
+
+    POST /budget/{id}/delete: Deleta uma categoria de orçamento.
+
+    GET /budget/categories: Retorna uma lista simples com os nomes das categorias de orçamento do usuário.
